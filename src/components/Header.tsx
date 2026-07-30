@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plane, Search, Ticket, Armchair, PlusCircle, ShieldCheck, UserCheck, KeyRound, Building2, Lock, LogOut, Sun, Moon } from 'lucide-react';
+import { Plane, Search, Ticket, Armchair, PlusCircle, ShieldCheck, UserCheck, KeyRound, Building2, Lock, LogOut, Sun, Moon, Calculator } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
 
 interface HeaderProps {
@@ -12,6 +12,7 @@ interface HeaderProps {
   setActiveTab: (tab: 'search' | 'lookup' | 'seat-explorer' | 'my-bookings') => void;
   bookingCount: number;
   onQuickBookClick: () => void;
+  onOpenCalculator?: () => void;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
 }
@@ -26,6 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
   setActiveTab,
   bookingCount,
   onQuickBookClick,
+  onOpenCalculator,
   isDarkMode,
   onToggleDarkMode,
 }) => {
@@ -202,8 +204,20 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </nav>
 
-          {/* Quick Action Button */}
-          <div className="flex items-center gap-3">
+          {/* Quick Action Buttons */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {onOpenCalculator && (
+              <button
+                type="button"
+                onClick={onOpenCalculator}
+                className="flex items-center gap-1.5 bg-slate-900/90 hover:bg-slate-800 text-sky-300 hover:text-white text-xs font-extrabold px-3 py-2.5 rounded-xl border border-sky-500/40 shadow-sm transition hover:scale-[1.02] active:scale-[0.98]"
+                title="Calculate flight hours, distance & arrival schedule"
+              >
+                <Calculator className="w-4 h-4 text-sky-400" />
+                <span className="hidden lg:inline">Flight Calculator</span>
+              </button>
+            )}
+
             {userRole === 'admin' ? (
               <button
                 onClick={() => {

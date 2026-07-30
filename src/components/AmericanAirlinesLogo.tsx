@@ -2,13 +2,13 @@ import React from 'react';
 
 interface AmericanAirlinesLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  variant?: 'full' | 'icon-only' | 'light-bg' | 'dark-bg';
+  variant?: 'dark-bg' | 'light-bg' | 'icon-only';
   className?: string;
 }
 
 export const AmericanAirlinesLogo: React.FC<AmericanAirlinesLogoProps> = ({
   size = 'md',
-  variant = 'full',
+  variant = 'light-bg',
   className = '',
 }) => {
   const sizeMap = {

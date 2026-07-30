@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Flight, Booking, Seat, PassengerInfo } from '../types';
 import { SeatPicker } from './SeatPicker';
 import confetti from 'canvas-confetti';
@@ -16,10 +16,13 @@ import {
   ArrowRight,
   MapPin,
   Clock,
-  Globe
+  Globe,
+  Calendar
 } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
 import { WORLD_AIRPORTS, searchWorldAirports, createFlightForDestination } from '../data/worldAirports';
+import { SmartAirportAutocomplete } from './SmartAirportAutocomplete';
+import { calculateFlightDuration } from '../utils/flightCalculator';
 
 interface BookingModalProps {
   flight: Flight | null;
@@ -44,6 +47,51 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   const [step, setStep] = useState<'seat' | 'passenger' | 'payment' | 'confirmation'>('seat');
   const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
+
+  // Flight Date Selection Input State
+  const [flightDateInput, setFlightDateInput] = useState<string>(() => {
+    if (flight?.departureTime && flight.departureTime.includes('T')) {
+      return flight.departureTime.split('T')[0];
+    }
+    return new Date().toISOString().split('T')[0];
+  });
+
+  useEffect(() => {
+    if (flight?.departureTime && flight.departureTime.includes('T')) {
+      setFlightDateInput(flight.departureTime.split('T')[0]);
+    }
+  }, [flight?.id, flight?.departureTime]);
+
+  const effectiveDepartureTime = useMemo(() => {
+    if (!flight) return '';
+    const timePart = flight.departureTime.includes('T')
+      ? flight.departureTime.split('T')[1]
+      : '18:30:00';
+    return flightDateInput ? `${flightDateInput}T${timePart}` : flight.departureTime;
+  }, [flight, flightDateInput]);
+
+  const calculatedMetrics = useMemo(() => {
+    if (!flight) return null;
+    return calculateFlightDuration(
+      flight.origin,
+      flight.destination,
+      effectiveDepartureTime
+    );
+  }, [flight, effectiveDepartureTime]);
+
+  const effectiveArrivalTime = useMemo(() => {
+    if (calculatedMetrics?.arrivalTimeISO) {
+      return calculatedMetrics.arrivalTimeISO;
+    }
+    return flight?.arrivalTime || '';
+  }, [calculatedMetrics, flight?.arrivalTime]);
+
+  const effectiveDuration = useMemo(() => {
+    if (calculatedMetrics?.durationFormatted) {
+      return calculatedMetrics.durationFormatted;
+    }
+    return flight?.duration || '';
+  }, [calculatedMetrics, flight?.duration]);
 
   // Modal Destination Search & Filter State
   const [destinationSearchInput, setDestinationSearchInput] = useState('');
@@ -124,8 +172,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       aircraft: flight.aircraft,
       origin: flight.origin,
       destination: flight.destination,
-      departureTime: flight.departureTime,
-      arrivalTime: flight.arrivalTime,
+      departureTime: effectiveDepartureTime,
+      arrivalTime: effectiveArrivalTime,
+      duration: effectiveDuration,
+      distanceKm: calculatedMetrics?.distanceKm,
+      distanceMiles: calculatedMetrics?.distanceMiles,
       terminal: flight.terminal,
       gate: flight.gate,
       seatNumber: selectedSeat.seatNumber,
@@ -207,53 +258,57 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {/* Text Input for Destination Search (Countries, States, Cities, Airports) */}
-                  <div className="relative">
-                    <Plane className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-red-400 transform rotate-45" />
-                    <input
-                      type="text"
-                      value={destinationSearchInput}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setDestinationSearchInput(val);
-                        if (!val.trim()) return;
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* Takeoff Departure Hub Smart Autocomplete */}
+                  <SmartAirportAutocomplete
+                    type="takeoff"
+                    label="Takeoff Departure Hub"
+                    placeholder="Type takeoff hub (e.g. JFK, LAX, DFW, Lagos, London, Tokyo)..."
+                    value={`${flight.origin.city} (${flight.origin.code}) - ${flight.origin.airport}`}
+                    selectedCode={flight.origin.code}
+                    onSelectAirport={(ap) => {
+                      if (onSelectFlight) {
+                        const updatedFlight: Flight = {
+                          ...flight,
+                          origin: {
+                            code: ap.code,
+                            city: ap.city,
+                            airport: ap.airport,
+                            country: ap.country,
+                            state: ap.state,
+                          },
+                        };
+                        onSelectFlight(updatedFlight);
+                      }
+                    }}
+                  />
 
-                        // 1. Match in existing flights array
-                        const matched = allFlights.find(
-                          (f) =>
-                            f.destination.city.toLowerCase().includes(val.toLowerCase()) ||
-                            f.destination.code.toLowerCase().includes(val.toLowerCase()) ||
-                            f.destination.airport.toLowerCase().includes(val.toLowerCase()) ||
-                            f.destination.country?.toLowerCase().includes(val.toLowerCase()) ||
-                            f.destination.state?.toLowerCase().includes(val.toLowerCase())
-                        );
-                        if (matched && onSelectFlight) {
-                          onSelectFlight(matched);
-                          setSelectedSeat(null);
+                  {/* Landing Destination Smart Autocomplete */}
+                  <SmartAirportAutocomplete
+                    type="landing"
+                    label="Landing Destination"
+                    placeholder="Type destination (e.g. Nigeria, London, Tokyo, Paris, California, Sydney)..."
+                    value={destinationSearchInput || `${flight.destination.city} (${flight.destination.code}) - ${flight.destination.airport}`}
+                    selectedCode={flight.destination.code}
+                    onSelectAirport={(ap) => {
+                      setDestinationSearchInput(`${ap.city} (${ap.code}) - ${ap.airport}`);
+                      if (onSelectFlight) {
+                        const existingFlight = allFlights.find((f) => f.destination.code === ap.code);
+                        if (existingFlight) {
+                          onSelectFlight({
+                            ...existingFlight,
+                            origin: flight.origin,
+                          });
                         } else {
-                          // 2. Search world airports database
-                          const matchedAirports = searchWorldAirports(val);
-                          if (matchedAirports.length > 0 && onSelectFlight) {
-                            const newFlight = createFlightForDestination(matchedAirports[0]);
-                            onSelectFlight(newFlight);
-                            setSelectedSeat(null);
-                          }
+                          onSelectFlight(createFlightForDestination(ap, flight.origin));
                         }
-                      }}
-                      placeholder="Input destination (e.g. Nigeria, London, Tokyo, Paris, Sydney)..."
-                      className="w-full pl-9 pr-8 py-2.5 rounded-xl border border-slate-600 bg-slate-900 text-xs font-bold text-white placeholder:text-slate-400 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none"
-                    />
-                    {destinationSearchInput && (
-                      <button
-                        onClick={() => setDestinationSearchInput('')}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-
+                        setSelectedSeat(null);
+                      }
+                    }}
+                    onClear={() => {
+                      setDestinationSearchInput('');
+                    }}
+                  />
                   {/* World Airports Dropdown Select Destination */}
                   <div className="relative">
                     <MapPin className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-sky-400" />
@@ -312,15 +367,84 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     );
                   })}
                 </div>
+                {/* Flight Departure Date Input & Customize Option */}
+                <div className="bg-[#00142E] p-3.5 rounded-xl border border-slate-700/90 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700/70 pb-2">
+                    <label className="text-xs font-black uppercase text-sky-300 tracking-wider flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4 text-sky-400" /> Input Date of Flight (Departure Date)
+                    </label>
+                    <span className="text-[11px] font-mono font-extrabold text-emerald-400 bg-emerald-950/80 px-2.5 py-0.5 rounded border border-emerald-700/60 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                      {new Date(effectiveDepartureTime).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="relative flex-1 min-w-[200px]">
+                      <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-sky-400 pointer-events-none" />
+                      <input
+                        type="date"
+                        value={flightDateInput}
+                        onChange={(e) => setFlightDateInput(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-600 bg-slate-900 text-xs font-bold text-white focus:border-sky-400 focus:ring-1 focus:ring-sky-400 outline-none"
+                      />
+                    </div>
+
+                    {/* Quick Date Shortcut Pills */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setFlightDateInput(new Date().toISOString().split('T')[0])}
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+                      >
+                        Today
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const d = new Date();
+                          d.setDate(d.getDate() + 1);
+                          setFlightDateInput(d.toISOString().split('T')[0]);
+                        }}
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+                      >
+                        Tomorrow
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const d = new Date();
+                          d.setDate(d.getDate() + 3);
+                          setFlightDateInput(d.toISOString().split('T')[0]);
+                        }}
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+                      >
+                        +3 Days
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const d = new Date();
+                          d.setDate(d.getDate() + 7);
+                          setFlightDateInput(d.toISOString().split('T')[0]);
+                        }}
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+                      >
+                        +7 Days
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Itinerary Banner Specifications */}
-              <div className="flex items-center justify-between border-b border-slate-700/80 pb-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700/80 pb-2.5">
                 <span className="text-xs font-black uppercase text-sky-400 flex items-center gap-1.5">
                   <Plane className="w-4 h-4 text-sky-400" /> Confirmed Flight Itinerary & Airport Specifications
                 </span>
-                <span className="text-xs font-mono font-bold text-amber-300 bg-amber-400/10 px-2.5 py-0.5 rounded border border-amber-400/20">
-                  {flight.flightNumber} ({flight.duration})
+                <span className="text-xs font-mono font-black text-emerald-300 bg-emerald-950/80 px-2.5 py-0.5 rounded-lg border border-emerald-700/60 flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                  Calculated Duration: {effectiveDuration} ({calculatedMetrics?.distanceKm.toLocaleString()} km / {calculatedMetrics?.distanceMiles.toLocaleString()} mi)
                 </span>
               </div>
 
@@ -337,7 +461,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   </div>
                   <div className="text-xs text-slate-300 pt-1 flex items-center gap-1 font-mono">
                     <Clock className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                    <span>Flight Time: <strong>{new Date(flight.departureTime).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} at {new Date(flight.departureTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></span>
+                    <span>Flight Time: <strong>{new Date(effectiveDepartureTime).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} at {new Date(effectiveDepartureTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></span>
                   </div>
                 </div>
 
@@ -353,7 +477,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   </div>
                   <div className="text-xs text-slate-300 pt-1 flex items-center gap-1 font-mono">
                     <Clock className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                    <span>Arrival Time: <strong>{new Date(flight.arrivalTime).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} at {new Date(flight.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></span>
+                    <span>Arrival Time: <strong>{new Date(effectiveArrivalTime).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} at {new Date(effectiveArrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></span>
                   </div>
                 </div>
               </div>
@@ -396,17 +520,28 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           {/* STEP 2: PASSENGER DETAILS FORM */}
           {step === 'passenger' && (
             <form onSubmit={handlePassengerSubmit} className="space-y-6">
-              <div className="bg-sky-50 p-4 rounded-2xl border border-sky-200 flex items-center justify-between text-xs text-sky-950">
+              <div className="bg-sky-50 dark:bg-sky-950/80 p-4 rounded-2xl border border-sky-200 dark:border-sky-800 flex flex-wrap items-center justify-between gap-3 text-xs text-sky-950 dark:text-sky-200">
                 <div className="flex items-center gap-2 font-bold">
-                  <Armchair className="w-4 h-4 text-[#0078D2]" />
-                  <span>Reserved Seat: <strong className="font-mono text-red-600">{selectedSeat?.seatNumber}</strong> ({selectedSeat?.cabinClass})</span>
+                  <Armchair className="w-4 h-4 text-[#0078D2] dark:text-sky-400" />
+                  <span>Reserved Seat: <strong className="font-mono text-red-600 dark:text-red-400">{selectedSeat?.seatNumber}</strong> ({selectedSeat?.cabinClass})</span>
                 </div>
-                <div className="font-black text-[#0078D2] text-sm">Flight Fare: ${calculateTotalFare()}</div>
+                <div className="flex items-center gap-2">
+                  <label className="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-[#0078D2] dark:text-sky-400" /> Date of Flight:
+                  </label>
+                  <input
+                    type="date"
+                    value={flightDateInput}
+                    onChange={(e) => setFlightDateInput(e.target.value)}
+                    className="py-1 px-2.5 rounded-lg border border-sky-300 dark:border-sky-700 text-xs font-bold bg-white text-slate-900 outline-none focus:ring-1 focus:ring-[#0078D2]"
+                  />
+                </div>
+                <div className="font-black text-[#0078D2] dark:text-sky-300 text-sm">Flight Fare: ${calculateTotalFare()}</div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Full Legal Name *</label>
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">Full Legal Name *</label>
                   <div className="relative">
                     <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
@@ -415,13 +550,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="e.g. Dr. Alexander Vance"
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-[#0078D2] focus:ring-2 focus:ring-sky-100 outline-none"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 bg-white placeholder:text-slate-400 focus:border-[#0078D2] focus:ring-2 focus:ring-sky-100 outline-none shadow-xs"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Email Address *</label>
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">Email Address *</label>
                   <div className="relative">
                     <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
@@ -430,13 +565,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="alex.vance@example.com"
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-[#0078D2] focus:ring-2 focus:ring-sky-100 outline-none"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 bg-white placeholder:text-slate-400 focus:border-[#0078D2] focus:ring-2 focus:ring-sky-100 outline-none shadow-xs"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Phone Number</label>
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">Phone Number</label>
                   <div className="relative">
                     <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
@@ -444,13 +579,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+1 (555) 019-2834"
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-[#0078D2] focus:ring-2 focus:ring-sky-100 outline-none"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 bg-white placeholder:text-slate-400 focus:border-[#0078D2] focus:ring-2 focus:ring-sky-100 outline-none shadow-xs"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Passport Number *</label>
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">Passport Number *</label>
                   <div className="relative">
                     <ShieldCheck className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
@@ -459,17 +594,17 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       value={passportNumber}
                       onChange={(e) => setPassportNumber(e.target.value)}
                       placeholder="e.g. US98012341"
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-[#0078D2] focus:ring-2 focus:ring-sky-100 outline-none font-mono"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 bg-white placeholder:text-slate-400 focus:border-[#0078D2] focus:ring-2 focus:ring-sky-100 outline-none font-mono shadow-xs"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Nationality</label>
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">Nationality</label>
                   <select
                     value={nationality}
                     onChange={(e) => setNationality(e.target.value)}
-                    className="w-full py-2.5 px-3 rounded-xl border border-slate-300 text-sm focus:border-[#0078D2] focus:ring-2 focus:ring-sky-100 outline-none bg-white font-medium text-slate-800"
+                    className="w-full py-2.5 px-3 rounded-xl border border-slate-300 text-sm focus:border-[#0078D2] focus:ring-2 focus:ring-sky-100 outline-none bg-white font-bold text-slate-900 shadow-xs"
                   >
                     <option value="United States">United States</option>
                     <option value="United Kingdom">United Kingdom</option>
@@ -484,12 +619,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Gender / DOB</label>
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">Gender / DOB</label>
                   <div className="grid grid-cols-2 gap-2">
                     <select
                       value={gender}
                       onChange={(e) => setGender(e.target.value as any)}
-                      className="w-full py-2.5 px-2 rounded-xl border border-slate-300 text-sm bg-white font-medium"
+                      className="w-full py-2.5 px-2 rounded-xl border border-slate-300 text-sm bg-white font-bold text-slate-900 shadow-xs"
                     >
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
@@ -499,17 +634,17 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       type="date"
                       value={dateOfBirth}
                       onChange={(e) => setDateOfBirth(e.target.value)}
-                      className="w-full py-2.5 px-2 rounded-xl border border-slate-300 text-sm bg-white font-medium"
+                      className="w-full py-2.5 px-2 rounded-xl border border-slate-300 text-sm bg-white font-bold text-slate-900 shadow-xs"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Flagship Onboard Meal Preference</label>
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">Flagship Onboard Meal Preference</label>
                   <select
                     value={mealPreference}
                     onChange={(e) => setMealPreference(e.target.value)}
-                    className="w-full py-2.5 px-3 rounded-xl border border-slate-300 text-sm bg-white font-medium text-slate-800"
+                    className="w-full py-2.5 px-3 rounded-xl border border-slate-300 text-sm bg-white font-bold text-slate-900 shadow-xs"
                   >
                     <option value="Flagship First Gourmet">Flagship First Gourmet Meal</option>
                     <option value="Halal Certified Course">Halal Certified Option</option>
@@ -520,11 +655,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Checked Baggage Allowance</label>
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">Checked Baggage Allowance</label>
                   <select
                     value={baggageCount}
                     onChange={(e) => setBaggageCount(Number(e.target.value))}
-                    className="w-full py-2.5 px-3 rounded-xl border border-slate-300 text-sm bg-white font-medium text-slate-800"
+                    className="w-full py-2.5 px-3 rounded-xl border border-slate-300 text-sm bg-white font-bold text-slate-900 shadow-xs"
                   >
                     <option value={1}>1 Carry-on + 1 Checked Bag (Included)</option>
                     <option value={2}>2 Checked Bags (+$35)</option>
@@ -534,13 +669,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Special Assistance or Requests</label>
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">Special Assistance or Requests</label>
                 <input
                   type="text"
                   value={specialAssistance}
                   onChange={(e) => setSpecialAssistance(e.target.value)}
                   placeholder="e.g. Priority Wheelchair, Infant Seat, Extra Pillow"
-                  className="w-full py-2.5 px-3 rounded-xl border border-slate-300 text-sm focus:border-[#0078D2] outline-none"
+                  className="w-full py-2.5 px-3 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 bg-white placeholder:text-slate-400 focus:border-[#0078D2] outline-none shadow-xs"
                 />
               </div>
 

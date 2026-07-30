@@ -1,7 +1,8 @@
 import React from 'react';
 import { Booking } from '../types';
-import { Plane, X, Printer, Ticket } from 'lucide-react';
+import { Plane, X, Printer, Ticket, Clock, Compass, CheckCircle2 } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
+import { calculateFlightDuration } from '../utils/flightCalculator';
 
 interface BoardingPassModalProps {
   booking: Booking | null;
@@ -14,6 +15,15 @@ export const BoardingPassModal: React.FC<BoardingPassModalProps> = ({ booking, o
   const handlePrint = () => {
     window.print();
   };
+
+  const flightCalc = calculateFlightDuration(
+    booking.origin,
+    booking.destination,
+    booking.departureTime
+  );
+
+  const durationStr = booking.duration || flightCalc.durationFormatted;
+  const arrDate = new Date(booking.arrivalTime || flightCalc.arrivalTimeISO);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -111,14 +121,7 @@ export const BoardingPassModal: React.FC<BoardingPassModalProps> = ({ booking, o
                 </div>
 
                 {/* Details Grid */}
-                <div className="grid grid-cols-4 gap-3 text-center">
-                  <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block">Date</span>
-                    <span className="text-xs font-black text-slate-800 dark:text-slate-200">
-                      {new Date(booking.departureTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                    </span>
-                  </div>
-
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
                   <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
                     <span className="text-[10px] text-slate-400 font-bold uppercase block">Departure</span>
                     <span className="text-xs font-black text-slate-800 dark:text-slate-200">
@@ -127,14 +130,37 @@ export const BoardingPassModal: React.FC<BoardingPassModalProps> = ({ booking, o
                   </div>
 
                   <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block">Terminal</span>
-                    <span className="text-xs font-black text-slate-800 dark:text-slate-200">{booking.terminal}</span>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase block flex items-center justify-center gap-1">
+                      <Clock className="w-3 h-3 text-sky-500" /> Flying Time
+                    </span>
+                    <span className="text-xs font-black text-sky-600 dark:text-sky-400 font-mono">
+                      {durationStr}
+                    </span>
                   </div>
 
                   <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block">Gate</span>
-                    <span className="text-xs font-black text-red-600 dark:text-red-400">{booking.gate}</span>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase block flex items-center justify-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-amber-500" /> Est. Landing
+                    </span>
+                    <span className="text-xs font-black text-amber-600 dark:text-amber-400 font-mono">
+                      {arrDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
+
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase block">Terminal / Gate</span>
+                    <span className="text-xs font-black text-red-600 dark:text-red-400">{booking.terminal} • Gate {booking.gate}</span>
+                  </div>
+                </div>
+
+                {/* Distance & Tracking Info Banner */}
+                <div className="flex items-center justify-between bg-sky-950/80 p-3 rounded-xl border border-sky-800/60 text-xs text-sky-200">
+                  <span className="flex items-center gap-1.5 font-mono font-bold">
+                    <Compass className="w-4 h-4 text-sky-400" /> Calculated Distance: {flightCalc.distanceKm.toLocaleString()} km ({flightCalc.distanceMiles.toLocaleString()} miles)
+                  </span>
+                  <span className="bg-sky-500/20 text-sky-300 font-mono text-[10px] px-2 py-0.5 rounded border border-sky-400/40">
+                    Auto-Tracked
+                  </span>
                 </div>
               </div>
 

@@ -167,18 +167,26 @@ export function searchWorldAirports(query: string): AirportLocation[] {
 /**
  * Dynamically generates a complete Flagship American Airlines flight for any given destination airport!
  */
-export function createFlightForDestination(dest: AirportLocation): Flight {
+export function createFlightForDestination(dest: AirportLocation, customOrigin?: AirportLocation): Flight {
   const flightNum = Math.floor(100 + Math.random() * 899);
   const price = Math.floor(520 + Math.random() * 650);
   
-  // Choose origin hub
-  const origin = {
-    code: 'JFK',
-    city: 'New York',
-    airport: 'John F. Kennedy Intl Airport',
-    country: 'United States',
-    state: 'New York'
-  };
+  // Choose origin hub (default to JFK if not provided)
+  const origin = customOrigin
+    ? {
+        code: customOrigin.code,
+        city: customOrigin.city,
+        airport: customOrigin.airport,
+        country: customOrigin.country,
+        state: customOrigin.state,
+      }
+    : {
+        code: 'JFK',
+        city: 'New York',
+        airport: 'John F. Kennedy Intl Airport',
+        country: 'United States',
+        state: 'New York',
+      };
 
   const aircrafts = [
     'Boeing 787-9 Dreamliner',

@@ -85,6 +85,9 @@ export interface Booking {
   };
   departureTime: string;
   arrivalTime: string;
+  duration?: string;
+  distanceKm?: number;
+  distanceMiles?: number;
   terminal: string;
   gate: string;
   seatNumber: string;

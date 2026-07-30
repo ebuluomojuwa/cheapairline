@@ -1,25 +1,30 @@
 import React, { useState, useMemo } from 'react';
-import { Flight } from '../types';
-import { Plane, MapPin, Search, ArrowRight, Sparkles, Armchair, ShieldCheck, Award, Globe, Building2 } from 'lucide-react';
+import { Flight, AirportLocation } from '../types';
+import { Plane, MapPin, Search, ArrowRight, Sparkles, Armchair, ShieldCheck, Award, Globe, Building2, Calendar, RefreshCw, Calculator, Clock } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
 import { WORLD_AIRPORTS, searchWorldAirports, createFlightForDestination } from '../data/worldAirports';
+import { SmartAirportAutocomplete } from './SmartAirportAutocomplete';
 
 interface FlightSearchProps {
   flights: Flight[];
   onSelectFlight: (flight: Flight) => void;
   onGoToLookup: () => void;
+  onOpenCalculator?: () => void;
 }
 
 export const FlightSearch: React.FC<FlightSearchProps> = ({
   flights,
   onSelectFlight,
   onGoToLookup,
+  onOpenCalculator,
 }) => {
   const [origin, setOrigin] = useState<string>('all');
+  const [originAirport, setOriginAirport] = useState<AirportLocation | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<string>('all');
   const [selectedState, setSelectedState] = useState<string>('all');
   const [destinationCode, setDestinationCode] = useState<string>('all');
   const [destinationSearchText, setDestinationSearchText] = useState<string>('');
+  const [flightDate, setFlightDate] = useState<string>('');
   const [maxPrice, setMaxPrice] = useState<number>(1800);
 
   // List of all unique countries available
@@ -67,7 +72,7 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
       } else {
         const destAp = WORLD_AIRPORTS.find((a) => a.code === destinationCode);
         if (destAp) {
-          return [createFlightForDestination(destAp)];
+          return [createFlightForDestination(destAp, originAirport || undefined)];
         }
       }
     }
@@ -109,19 +114,32 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
       if (list.length === 0) {
         const matchingWorldAirports = searchWorldAirports(query);
         if (matchingWorldAirports.length > 0) {
-          return matchingWorldAirports.slice(0, 6).map((ap) => createFlightForDestination(ap));
+          return matchingWorldAirports.slice(0, 6).map((ap) => createFlightForDestination(ap, originAirport || undefined));
         }
       }
     } else if (selectedCountry !== 'all' && list.length === 0) {
       // If country selected but no static flight, generate flight for first airport in that country
       const matchedAps = WORLD_AIRPORTS.filter((a) => a.country === selectedCountry);
       if (matchedAps.length > 0) {
-        return matchedAps.map((ap) => createFlightForDestination(ap));
+        return matchedAps.map((ap) => createFlightForDestination(ap, originAirport || undefined));
       }
     }
 
+    // If passenger selected a flight date, map departure and arrival times to match the chosen date
+    if (flightDate) {
+      list = list.map((f) => {
+        const depTimeStr = f.departureTime.includes('T') ? f.departureTime.split('T')[1] : '18:30:00';
+        const arrTimeStr = f.arrivalTime.includes('T') ? f.arrivalTime.split('T')[1] : '06:45:00';
+        return {
+          ...f,
+          departureTime: `${flightDate}T${depTimeStr}`,
+          arrivalTime: `${flightDate}T${arrTimeStr}`,
+        };
+      });
+    }
+
     return list;
-  }, [flights, origin, selectedCountry, selectedState, destinationCode, destinationSearchText, maxPrice]);
+  }, [flights, origin, selectedCountry, selectedState, destinationCode, destinationSearchText, flightDate, maxPrice]);
 
   const quickCountries = [
     { country: 'Nigeria', flag: '🇳🇬', code: 'LOS', name: 'Lagos / Abuja' },
@@ -145,10 +163,12 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
 
   const handleResetFilters = () => {
     setOrigin('all');
+    setOriginAirport(null);
     setSelectedCountry('all');
     setSelectedState('all');
     setDestinationCode('all');
     setDestinationSearchText('');
+    setFlightDate('');
   };
 
   return (
@@ -218,54 +238,78 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
 
       {/* Global Destination & Route Search Controls */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-md border border-slate-200/80 dark:border-slate-800 space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
           <h2 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
-            <Globe className="w-4 h-4 text-[#C41230]" /> Global Destination, Country & State Airport Directory
+            <Globe className="w-4 h-4 text-[#C41230]" /> Smart Takeoff Origin & Landing Destination Search Engine
           </h2>
-          {(origin !== 'all' || selectedCountry !== 'all' || selectedState !== 'all' || destinationCode !== 'all' || destinationSearchText !== '') && (
-            <button
-              onClick={handleResetFilters}
-              className="text-xs font-bold text-[#C41230] hover:underline flex items-center gap-1"
-            >
-              ✕ Reset All Destination Filters
-            </button>
-          )}
-        </div>
-
-        {/* Primary Freeform Input Search Box */}
-        <div className="bg-gradient-to-r from-red-50/70 via-slate-50 to-sky-50/70 dark:from-red-950/30 dark:via-slate-900 dark:to-sky-950/30 p-4 rounded-xl border border-red-200/80 dark:border-red-900/40 space-y-2">
-          <label className="text-xs font-black text-slate-800 dark:text-slate-200 block uppercase tracking-wide flex items-center justify-between">
-            <span>1. Search / Input Any Destination Country, State, City, or Airport</span>
-            <span className="text-[10px] text-red-600 dark:text-red-400 font-bold bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-red-200 dark:border-red-900/60 font-mono">Worldwide Coverage</span>
-          </label>
-          <div className="relative">
-            <Plane className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#C41230] transform rotate-45" />
-            <input
-              type="text"
-              value={destinationSearchText}
-              onChange={(e) => {
-                setDestinationSearchText(e.target.value);
-                setDestinationCode('all');
-              }}
-              placeholder="Type any country (e.g. Nigeria, United States, Japan, France), state/province, or airport..."
-              className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-[#C41230] focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/40 outline-none transition shadow-xs"
-            />
-            {destinationSearchText && (
+          <div className="flex items-center gap-3">
+            {onOpenCalculator && (
               <button
-                onClick={() => setDestinationSearchText('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-xs font-bold bg-slate-200 dark:bg-slate-700 rounded-full w-5 h-5 flex items-center justify-center"
+                type="button"
+                onClick={onOpenCalculator}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#001E42] to-[#003B7A] hover:from-[#002D62] hover:to-[#00519E] text-sky-200 text-xs font-black uppercase tracking-wider border border-sky-400/40 shadow-sm transition transform active:scale-95"
               >
-                ✕
+                <Calculator className="w-4 h-4 text-sky-400" />
+                <span>Calculate Flight Duration</span>
+              </button>
+            )}
+            {(origin !== 'all' || selectedCountry !== 'all' || selectedState !== 'all' || destinationCode !== 'all' || destinationSearchText !== '') && (
+              <button
+                onClick={handleResetFilters}
+                className="text-xs font-bold text-[#C41230] hover:underline flex items-center gap-1"
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> Reset Filters
               </button>
             )}
           </div>
         </div>
 
-        {/* 3-Step Destination Dropdowns (Country -> State -> Airport) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Smart Autocomplete Search Inputs Grid (Takeoff Origin + Landing Destination) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 bg-gradient-to-r from-red-50/70 via-slate-50 to-sky-50/70 dark:from-red-950/30 dark:via-slate-900 dark:to-sky-950/30 p-4 rounded-2xl border border-red-200/80 dark:border-red-900/40">
+          {/* Takeoff Origin Hub Smart Autocomplete */}
+          <SmartAirportAutocomplete
+            type="takeoff"
+            label="Takeoff Departure Hub"
+            placeholder="Type takeoff hub (e.g. JFK, LAX, DFW, Lagos, London, Tokyo)..."
+            value={originAirport ? `${originAirport.city} (${originAirport.code}) - ${originAirport.airport}` : origin === 'all' ? '' : origin}
+            selectedCode={originAirport?.code || (origin !== 'all' ? origin : '')}
+            onSelectAirport={(ap) => {
+              setOriginAirport(ap);
+              setOrigin(ap.code);
+            }}
+            onClear={() => {
+              setOriginAirport(null);
+              setOrigin('all');
+            }}
+          />
+
+          {/* Landing Destination Smart Autocomplete */}
+          <SmartAirportAutocomplete
+            type="landing"
+            label="Landing Destination (Country, State, City, Airport)"
+            placeholder="Type any country (e.g. Nigeria, USA, Japan), state/province, or airport..."
+            value={destinationSearchText}
+            selectedCode={destinationCode !== 'all' ? destinationCode : ''}
+            onSelectAirport={(ap) => {
+              setDestinationCode(ap.code);
+              setSelectedCountry(ap.country);
+              setSelectedState(ap.state || 'all');
+              setDestinationSearchText(`${ap.city} (${ap.code}) - ${ap.airport}`);
+            }}
+            onClear={() => {
+              setDestinationSearchText('');
+              setDestinationCode('all');
+              setSelectedCountry('all');
+              setSelectedState('all');
+            }}
+          />
+        </div>
+
+        {/* 5-Step Search Dropdowns (Country -> State -> Airport -> Quick Departure Hub -> Flight Date) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* 1. Country Selector */}
           <div>
-            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">Select Country</label>
+            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">Filter by Country</label>
             <div className="relative">
               <Globe className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400" />
               <select
@@ -290,7 +334,7 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
 
           {/* 2. State / Province Selector */}
           <div>
-            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">Select State / Province</label>
+            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">Filter by State / Province</label>
             <div className="relative">
               <Building2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-amber-600 dark:text-amber-400" />
               <select
@@ -316,13 +360,17 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
 
           {/* 3. Specific Airport Selector */}
           <div>
-            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">Select Airport</label>
+            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">Select Specific Airport</label>
             <div className="relative">
               <MapPin className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-red-500 dark:text-red-400" />
               <select
                 value={destinationCode}
                 onChange={(e) => {
                   setDestinationCode(e.target.value);
+                  const found = WORLD_AIRPORTS.find((ap) => ap.code === e.target.value);
+                  if (found) {
+                    setDestinationSearchText(`${found.city} (${found.code}) - ${found.airport}`);
+                  }
                 }}
                 className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 focus:border-[#C41230] focus:ring-1 focus:ring-[#C41230] outline-none"
               >
@@ -336,24 +384,55 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
             </div>
           </div>
 
-          {/* Departure Hub Origin */}
+          {/* 4. Departure Hub Quick Dropdown */}
           <div>
-            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">Departure Origin Hub</label>
+            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">Takeoff Hub Shortcut</label>
             <div className="relative">
               <Plane className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-sky-600 dark:text-sky-400 transform -rotate-45" />
               <select
                 value={origin}
-                onChange={(e) => setOrigin(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setOrigin(val);
+                  const found = WORLD_AIRPORTS.find((a) => a.code === val);
+                  setOriginAirport(found || null);
+                }}
                 className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 focus:border-[#0078D2] focus:ring-1 focus:ring-[#0078D2] outline-none"
               >
-                <option value="all">Any Origin Hub</option>
+                <option value="all">Any Departure Hub</option>
                 <option value="JFK">JFK - New York Kennedy</option>
                 <option value="LAX">LAX - Los Angeles Intl</option>
                 <option value="DFW">DFW - Dallas / Fort Worth</option>
                 <option value="ORD">ORD - Chicago O'Hare</option>
                 <option value="MIA">MIA - Miami Intl</option>
                 <option value="SFO">SFO - San Francisco</option>
+                <option value="LHR">LHR - London Heathrow</option>
+                <option value="LOS">LOS - Lagos Murtala</option>
               </select>
+            </div>
+          </div>
+
+          {/* 5. Date of Flight (Departure Date Input) */}
+          <div>
+            <label className="text-xs font-bold text-[#0078D2] dark:text-sky-400 block mb-1 flex items-center justify-between">
+              <span>Date of Flight</span>
+              {flightDate && (
+                <button
+                  onClick={() => setFlightDate('')}
+                  className="text-[10px] text-red-500 hover:underline"
+                >
+                  Clear Date
+                </button>
+              )}
+            </label>
+            <div className="relative">
+              <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#0078D2] dark:text-sky-400" />
+              <input
+                type="date"
+                value={flightDate}
+                onChange={(e) => setFlightDate(e.target.value)}
+                className="w-full pl-9 pr-2 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 focus:border-[#0078D2] focus:ring-1 focus:ring-[#0078D2] outline-none"
+              />
             </div>
           </div>
         </div>

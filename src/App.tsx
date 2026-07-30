@@ -9,9 +9,11 @@ import { MyBookings } from './components/MyBookings';
 import { BookingModal } from './components/BookingModal';
 import { BoardingPassModal } from './components/BoardingPassModal';
 import { AdminAuthModal } from './components/AdminAuthModal';
+import { FlightCalculatorModal } from './components/FlightCalculatorModal';
 
 export default function App() {
   const [flights] = useState<Flight[]>(INITIAL_FLIGHTS);
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState<boolean>(false);
   
   // Theme state: Dark mode vs Light mode
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -156,6 +158,7 @@ export default function App() {
         }}
         bookingCount={bookings.length}
         onQuickBookClick={() => setBookingFlight(flights[0])}
+        onOpenCalculator={() => setIsCalculatorOpen(true)}
         isDarkMode={isDarkMode}
         onToggleDarkMode={() => setIsDarkMode((prev) => !prev)}
       />
@@ -167,6 +170,7 @@ export default function App() {
             flights={flights}
             onSelectFlight={(flight) => setBookingFlight(flight)}
             onGoToLookup={() => setActiveTab('lookup')}
+            onOpenCalculator={() => setIsCalculatorOpen(true)}
           />
         )}
 
@@ -235,6 +239,13 @@ export default function App() {
         isOpen={isAdminAuthModalOpen}
         onClose={() => setIsAdminAuthModalOpen(false)}
         onSuccess={handleAdminAuthSuccess}
+      />
+
+      {/* Global Flight Time & Duration Calculator Modal */}
+      <FlightCalculatorModal
+        isOpen={isCalculatorOpen}
+        onClose={() => setIsCalculatorOpen(false)}
+        onBookFlight={(f) => setBookingFlight(f)}
       />
     </div>
   );
