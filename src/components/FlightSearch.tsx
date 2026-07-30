@@ -163,44 +163,57 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
                     </span>
                   </div>
 
-                  {/* Route Bar */}
-                  <div className="flex items-center gap-4 bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
-                    <div>
-                      <span className="text-xl font-black text-slate-900">{flight.origin.code}</span>
-                      <span className="text-xs text-slate-500 block font-medium">{flight.origin.city}</span>
-                      <span className="text-[10px] text-slate-400 block font-mono">
-                        {new Date(flight.departureTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-
-                    <div className="flex-1 text-center px-4">
-                      <span className="text-[10px] font-mono text-slate-400 block font-bold uppercase">{flight.duration}</span>
-                      <div className="w-full flex items-center gap-1 my-1">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#0078D2]" />
-                        <div className="flex-1 h-0.5 bg-slate-300 relative">
-                          <Plane className="w-4 h-4 text-[#C41230] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transform -rotate-12" />
+                  {/* Route & Airport Details Box */}
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs border-b border-slate-200/80 pb-3">
+                      {/* Take-off Airport & Origin */}
+                      <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs space-y-1">
+                        <div className="text-[10px] text-sky-700 font-black uppercase tracking-wider flex items-center gap-1">
+                          <Plane className="w-3.5 h-3.5 text-[#0078D2] transform -rotate-45" />
+                          Starting From (Take-off Airport)
                         </div>
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#C41230]" />
+                        <div className="text-base font-black text-slate-900">{flight.origin.city} ({flight.origin.code})</div>
+                        <div className="text-xs font-bold text-sky-800 flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                          <span>{flight.origin.airport}</span>
+                        </div>
+                        <div className="text-[11px] text-slate-600 font-semibold pt-1 border-t border-slate-100 flex items-center gap-1.5">
+                          <span className="text-slate-400">Flight Time:</span>
+                          <span className="font-mono font-bold text-slate-900">
+                            {new Date(flight.departureTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} at {new Date(flight.departureTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-[10px] text-slate-500 block font-bold text-sky-700">Flagship® Direct</span>
+
+                      {/* Landing Airport & Destination */}
+                      <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs space-y-1">
+                        <div className="text-[10px] text-red-700 font-black uppercase tracking-wider flex items-center gap-1">
+                          <Plane className="w-3.5 h-3.5 text-[#C41230] transform rotate-45" />
+                          Heading To (Landing Airport)
+                        </div>
+                        <div className="text-base font-black text-slate-900">{flight.destination.city} ({flight.destination.code})</div>
+                        <div className="text-xs font-bold text-red-800 flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                          <span>{flight.destination.airport}</span>
+                        </div>
+                        <div className="text-[11px] text-slate-600 font-semibold pt-1 border-t border-slate-100 flex items-center gap-1.5">
+                          <span className="text-slate-400">Arrival Time:</span>
+                          <span className="font-mono font-bold text-slate-900">
+                            {new Date(flight.arrivalTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} at {new Date(flight.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="text-right">
-                      <span className="text-xl font-black text-slate-900">{flight.destination.code}</span>
-                      <span className="text-xs text-slate-500 block font-medium">{flight.destination.city}</span>
-                      <span className="text-[10px] text-slate-400 block font-mono">
-                        {new Date(flight.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <div className="flex flex-wrap items-center justify-between text-xs text-slate-600 gap-2 font-medium">
+                      <span>Aircraft: <strong className="text-slate-900 font-bold">{flight.aircraft}</strong></span>
+                      <span>Terminal <strong className="text-slate-900 font-bold">{flight.terminal}</strong> • Gate <strong className="text-slate-900 font-bold">{flight.gate}</strong></span>
+                      <span>Duration: <strong className="text-slate-900 font-bold">{flight.duration}</strong></span>
+                      <span className="text-emerald-700 font-bold flex items-center gap-1 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                        <Armchair className="w-3.5 h-3.5 text-emerald-600" />
+                        {flight.availableSeats} Open Seats
                       </span>
                     </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 pt-1">
-                    <span>Aircraft: <strong className="text-slate-800 font-bold">{flight.aircraft}</strong></span>
-                    <span>• Terminal {flight.terminal}, Gate {flight.gate}</span>
-                    <span className="text-emerald-700 font-bold flex items-center gap-1">
-                      <Armchair className="w-3.5 h-3.5 text-emerald-600" />
-                      {flight.availableSeats} Open Seats
-                    </span>
                   </div>
                 </div>
               </div>

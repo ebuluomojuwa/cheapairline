@@ -81,4 +81,7 @@ export interface Booking {
   status: 'Confirmed' | 'Checked In' | 'Boarded' | 'Cancelled';
   pricePaid: number;
   paymentMethod: string;
+  gatePassApproved?: boolean;
+  gatePassApprovedAt?: string;
+  verifiedByAgent?: string;
 }

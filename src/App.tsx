@@ -8,6 +8,7 @@ import { SeatExplorerView } from './components/SeatExplorerView';
 import { MyBookings } from './components/MyBookings';
 import { BookingModal } from './components/BookingModal';
 import { BoardingPassModal } from './components/BoardingPassModal';
+import { AdminAuthModal } from './components/AdminAuthModal';
 
 export default function App() {
   const [flights] = useState<Flight[]>(INITIAL_FLIGHTS);
@@ -18,10 +19,20 @@ export default function App() {
       const saved = localStorage.getItem('aeroreserve_bookings');
       if (saved) {
         const parsed: Booking[] = JSON.parse(saved);
-        // Ensure default INITIAL_BOOKINGS (like Elizabeth Gutierrez 001-9482-7710) are always present
-        const existingTicketNumbers = new Set(parsed.map((b) => b.ticketNumber));
-        const missingDefaults = INITIAL_BOOKINGS.filter((b) => !existingTicketNumbers.has(b.ticketNumber));
-        return [...parsed, ...missingDefaults];
+        // Deduplicate using a Map keyed by booking ID
+        const bookingMap = new Map<string, Booking>();
+        // First populate with INITIAL_BOOKINGS (ensures current default records are present)
+        INITIAL_BOOKINGS.forEach((b) => bookingMap.set(b.id, b));
+        // Then overlay saved bookings for any custom created bookings (or user modifications)
+        if (Array.isArray(parsed)) {
+          parsed.forEach((b) => {
+            if (b && b.id) {
+              // If it's a new booking created by user or updated default, set it
+              bookingMap.set(b.id, b);
+            }
+          });
+        }
+        return Array.from(bookingMap.values());
       }
     } catch (e) {
       console.error('Failed to load saved bookings', e);
@@ -36,6 +47,28 @@ export default function App() {
       console.error('Failed to save bookings', e);
     }
   }, [bookings]);
+
+  // User Role State: 'passenger' | 'admin'
+  const [userRole, setUserRole] = useState<'passenger' | 'admin'>('passenger');
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('aeroreserve_admin_auth') === 'true';
+  });
+  const [isAdminAuthModalOpen, setIsAdminAuthModalOpen] = useState<boolean>(false);
+
+  const handleAdminAuthSuccess = () => {
+    setIsAdminAuthenticated(true);
+    localStorage.setItem('aeroreserve_admin_auth', 'true');
+    setUserRole('admin');
+    setActiveTab('lookup');
+    setIsAdminAuthModalOpen(false);
+  };
+
+  const handleAdminLogout = () => {
+    setIsAdminAuthenticated(false);
+    localStorage.removeItem('aeroreserve_admin_auth');
+    setUserRole('passenger');
+    setActiveTab('search');
+  };
 
   // Navigation State
   const [activeTab, setActiveTab] = useState<'search' | 'lookup' | 'seat-explorer' | 'my-bookings'>('search');
@@ -54,6 +87,22 @@ export default function App() {
     setBookings((prev) => prev.filter((b) => b.id !== bookingId));
   };
 
+  const handleApproveGatePass = (bookingId: string) => {
+    setBookings((prev) =>
+      prev.map((b) =>
+        b.id === bookingId
+          ? {
+              ...b,
+              status: 'Checked In',
+              gatePassApproved: true,
+              gatePassApprovedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              verifiedByAgent: 'AA Front Desk Desk Agent #714',
+            }
+          : b
+      )
+    );
+  };
+
   const handleInspectPassenger = (booking: Booking) => {
     setLookupQuery(booking.seatNumber);
     setActiveTab('lookup');
@@ -67,6 +116,17 @@ export default function App() {
     <div className="min-h-screen bg-slate-100 text-slate-900 font-sans flex flex-col selection:bg-sky-500 selection:text-white">
       {/* Navbar Header */}
       <Header
+        userRole={userRole}
+        setUserRole={(role) => {
+          if (role === 'admin' && !isAdminAuthenticated) {
+            setIsAdminAuthModalOpen(true);
+          } else {
+            setUserRole(role);
+          }
+        }}
+        isAdminAuthenticated={isAdminAuthenticated}
+        onOpenAdminAuth={() => setIsAdminAuthModalOpen(true)}
+        onAdminLogout={handleAdminLogout}
         activeTab={activeTab}
         setActiveTab={(tab) => {
           setActiveTab(tab);
@@ -90,8 +150,10 @@ export default function App() {
           <PassengerLookup
             bookings={bookings}
             flights={flights}
+            userRole={userRole}
             onViewBoardingPass={(b) => setBoardingPassBooking(b)}
             onCancelBooking={handleCancelBooking}
+            onApproveGatePass={handleApproveGatePass}
             initialQuery={lookupQuery}
           />
         )}
@@ -141,6 +203,13 @@ export default function App() {
           onClose={() => setBoardingPassBooking(null)}
         />
       )}
+
+      {/* Admin Security Auth Modal */}
+      <AdminAuthModal
+        isOpen={isAdminAuthModalOpen}
+        onClose={() => setIsAdminAuthModalOpen(false)}
+        onSuccess={handleAdminAuthSuccess}
+      />
     </div>
   );
 }
