@@ -13,6 +13,26 @@ import { AdminAuthModal } from './components/AdminAuthModal';
 export default function App() {
   const [flights] = useState<Flight[]>(INITIAL_FLIGHTS);
   
+  // Theme state: Dark mode vs Light mode
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('aeroreserve_theme');
+      if (saved) return saved === 'dark';
+    } catch (e) {}
+    return false;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('aeroreserve_theme', isDarkMode ? 'dark' : 'light');
+    } catch (e) {}
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
+
   // LocalStorage persistence for bookings so user edits/new bookings persist
   const [bookings, setBookings] = useState<Booking[]>(() => {
     try {
@@ -113,7 +133,9 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 font-sans flex flex-col selection:bg-sky-500 selection:text-white">
+    <div className={`min-h-screen font-sans flex flex-col transition-colors duration-200 selection:bg-sky-500 selection:text-white ${
+      isDarkMode ? 'bg-slate-950 text-slate-100 dark' : 'bg-slate-100 text-slate-900'
+    }`}>
       {/* Navbar Header */}
       <Header
         userRole={userRole}
@@ -134,6 +156,8 @@ export default function App() {
         }}
         bookingCount={bookings.length}
         onQuickBookClick={() => setBookingFlight(flights[0])}
+        isDarkMode={isDarkMode}
+        onToggleDarkMode={() => setIsDarkMode((prev) => !prev)}
       />
 
       {/* Main View Area */}
@@ -189,6 +213,8 @@ export default function App() {
       {bookingFlight && (
         <BookingModal
           flight={bookingFlight}
+          allFlights={flights}
+          onSelectFlight={(f) => setBookingFlight(f)}
           bookings={bookings}
           onClose={() => setBookingFlight(null)}
           onBookingComplete={handleBookingComplete}

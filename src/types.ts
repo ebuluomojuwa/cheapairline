@@ -25,6 +25,15 @@ export interface Seat {
   priceModifier: number; // e.g. +$50 for extra legroom or business
 }
 
+export interface AirportLocation {
+  code: string;
+  city: string;
+  airport: string;
+  country: string;
+  state?: string;
+  flag?: string;
+}
+
 export interface Flight {
   id: string;
   flightNumber: string; // e.g. "AA-104"
@@ -35,11 +44,15 @@ export interface Flight {
     code: string;
     city: string;
     airport: string;
+    country?: string;
+    state?: string;
   };
   destination: {
     code: string;
     city: string;
     airport: string;
+    country?: string;
+    state?: string;
   };
   departureTime: string; // ISO or formatted
   arrivalTime: string;

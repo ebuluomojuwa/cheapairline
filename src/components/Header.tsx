@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plane, Search, Ticket, Armchair, PlusCircle, ShieldCheck, UserCheck, KeyRound, Building2, Lock, LogOut } from 'lucide-react';
+import { Plane, Search, Ticket, Armchair, PlusCircle, ShieldCheck, UserCheck, KeyRound, Building2, Lock, LogOut, Sun, Moon } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
 
 interface HeaderProps {
@@ -12,6 +12,8 @@ interface HeaderProps {
   setActiveTab: (tab: 'search' | 'lookup' | 'seat-explorer' | 'my-bookings') => void;
   bookingCount: number;
   onQuickBookClick: () => void;
+  isDarkMode: boolean;
+  onToggleDarkMode: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -24,23 +26,45 @@ export const Header: React.FC<HeaderProps> = ({
   setActiveTab,
   bookingCount,
   onQuickBookClick,
+  isDarkMode,
+  onToggleDarkMode,
 }) => {
   return (
     <header className="bg-[#001E42] border-b border-slate-700/80 text-white sticky top-0 z-40 shadow-xl backdrop-blur-md bg-opacity-95">
-      {/* Top micro banner with Role Selector */}
+      {/* Top micro banner with Role Selector & Dark Mode Toggle */}
       <div className="bg-[#00142E] text-slate-300 text-[11px] py-1.5 px-4 border-b border-slate-800">
         <div className="max-w-7xl mx-auto flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <span className="flex items-center gap-1.5 font-bold text-sky-400">
-              <ShieldCheck className="w-3.5 h-3.5" /> American Airlines Direct Terminal
+              <ShieldCheck className="w-3.5 h-3.5" /> American Airlines • Official Reservation Portal
             </span>
             <span className="text-slate-600 hidden md:inline">|</span>
-            <span className="text-slate-300 hidden md:inline font-medium">AAdvantage® Flight Booking & Gate Check-In Engine</span>
+            <span className="text-slate-300 hidden md:inline font-medium">AAdvantage® Member Perks & Seat Management</span>
           </div>
 
-          {/* Role Switcher & Protected Admin Button */}
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mr-1 hidden sm:inline">Active Mode:</span>
+          {/* Theme Toggle & Role Switcher */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Dark Mode Theme Button */}
+            <button
+              type="button"
+              onClick={onToggleDarkMode}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-slate-200 text-xs font-bold transition shadow-xs group"
+              title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {isDarkMode ? (
+                <>
+                  <Sun className="w-3.5 h-3.5 text-amber-400 group-hover:rotate-45 transition-transform" />
+                  <span className="text-amber-300 hidden sm:inline">Light</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-3.5 h-3.5 text-indigo-300 group-hover:-rotate-12 transition-transform" />
+                  <span className="text-slate-300 hidden sm:inline">Dark</span>
+                </>
+              )}
+            </button>
+
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider hidden sm:inline">Portal View:</span>
             <div className="bg-slate-900/90 p-1 rounded-xl border border-slate-700/80 flex items-center gap-1">
               <button
                 type="button"
@@ -48,14 +72,14 @@ export const Header: React.FC<HeaderProps> = ({
                   setUserRole('passenger');
                   if (activeTab === 'lookup') setActiveTab('search');
                 }}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black transition-all ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
                   userRole === 'passenger'
                     ? 'bg-[#0078D2] text-white shadow-sm ring-1 ring-sky-300/40'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
                 <UserCheck className="w-3.5 h-3.5" />
-                <span>Passenger / Client</span>
+                <span>Passenger</span>
               </button>
 
               <button
@@ -68,7 +92,7 @@ export const Header: React.FC<HeaderProps> = ({
                     onOpenAdminAuth();
                   }
                 }}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black transition-all ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
                   userRole === 'admin'
                     ? 'bg-[#C41230] text-white shadow-sm ring-1 ring-red-400/40'
                     : 'text-slate-400 hover:text-white'
@@ -79,9 +103,9 @@ export const Header: React.FC<HeaderProps> = ({
                 ) : (
                   <Lock className="w-3.5 h-3.5 text-amber-400" />
                 )}
-                <span>Admin / Front Desk</span>
+                <span>Gate Agent Terminal</span>
                 {!isAdminAuthenticated && (
-                  <span className="text-[9px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded font-mono font-bold">Protected</span>
+                  <span className="text-[9px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded font-mono font-bold">Desk Only</span>
                 )}
               </button>
 
@@ -89,7 +113,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   type="button"
                   onClick={onAdminLogout}
-                  title="Lock Admin Portal & Return to Passenger Mode"
+                  title="Lock Agent Terminal & Return to Passenger View"
                   className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold text-rose-300 hover:text-white hover:bg-rose-900/50 transition border border-rose-500/30"
                 >
                   <LogOut className="w-3 h-3 text-rose-400" />

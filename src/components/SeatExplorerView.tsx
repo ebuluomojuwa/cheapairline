@@ -73,38 +73,38 @@ export const SeatExplorerView: React.FC<SeatExplorerViewProps> = ({
 
           {/* Sidebar Flight & Manifest Overview */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-md space-y-4">
-              <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-md space-y-4">
+              <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-base flex items-center gap-2">
                 <Plane className="w-4 h-4 text-[#0078D2]" /> Flight Specifications
               </h3>
 
               <div className="space-y-3 text-xs">
-                <div className="flex justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-slate-500 font-medium">Airline</span>
-                  <span className="font-extrabold text-slate-900">{activeFlight.airline} ({activeFlight.flightNumber})</span>
+                <div className="flex justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">Airline</span>
+                  <span className="font-extrabold text-slate-900 dark:text-slate-100">{activeFlight.airline} ({activeFlight.flightNumber})</span>
                 </div>
-                <div className="flex justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-slate-500 font-medium">Aircraft Specs</span>
-                  <span className="font-bold text-slate-900">{activeFlight.aircraft}</span>
+                <div className="flex justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">Aircraft Specs</span>
+                  <span className="font-bold text-slate-900 dark:text-slate-100">{activeFlight.aircraft}</span>
                 </div>
-                <div className="flex justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-slate-500 font-medium">Route</span>
-                  <span className="font-bold text-slate-900">{activeFlight.origin.city} ➔ {activeFlight.destination.city}</span>
+                <div className="flex justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">Route</span>
+                  <span className="font-bold text-slate-900 dark:text-slate-100">{activeFlight.origin.city} ➔ {activeFlight.destination.city}</span>
                 </div>
-                <div className="flex justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-slate-500 font-medium">Terminal & Gate</span>
-                  <span className="font-bold text-slate-900">Terminal {activeFlight.terminal} • Gate {activeFlight.gate}</span>
+                <div className="flex justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">Terminal & Gate</span>
+                  <span className="font-bold text-slate-900 dark:text-slate-100">Terminal {activeFlight.terminal} • Gate {activeFlight.gate}</span>
                 </div>
               </div>
             </div>
 
             {/* Current Occupied Seats Manifest on this Flight */}
-            <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-md space-y-4">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-md space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-base flex items-center gap-2">
                   <Ticket className="w-4 h-4 text-[#C41230]" /> Booked Passengers Manifest
                 </h3>
-                <span className="text-xs bg-red-100 text-red-800 font-extrabold px-2.5 py-0.5 rounded-full">
+                <span className="text-xs bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 font-extrabold px-2.5 py-0.5 rounded-full border border-red-200 dark:border-red-900">
                   {bookings.filter((b) => b.flightId === activeFlight.id && b.status !== 'Cancelled').length} Booked
                 </span>
               </div>
@@ -119,23 +119,23 @@ export const SeatExplorerView: React.FC<SeatExplorerViewProps> = ({
                       <div
                         key={booking.id}
                         onClick={() => onInspectPassenger(booking)}
-                        className="p-3 rounded-2xl bg-slate-50 border border-slate-200 hover:border-[#0078D2] cursor-pointer transition flex items-center justify-between hover:bg-sky-50/50 group"
+                        className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 hover:border-[#0078D2] dark:hover:border-sky-500 cursor-pointer transition flex items-center justify-between hover:bg-sky-50/50 dark:hover:bg-sky-950/40 group"
                       >
                         <div className="flex items-center gap-3">
                           <span className="w-8 h-8 rounded-xl bg-red-600 text-white font-mono font-black text-xs flex items-center justify-center shadow-sm">
                             {booking.seatNumber}
                           </span>
                           <div>
-                            <div className="text-xs font-bold text-slate-900 group-hover:text-[#0078D2]">
+                            <div className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#0078D2] dark:group-hover:text-sky-300">
                               {booking.passenger.fullName}
                             </div>
-                            <div className="text-[10px] text-slate-500 font-mono">
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
                               Ticket: {booking.ticketNumber}
                             </div>
                           </div>
                         </div>
 
-                        <span className="text-[10px] font-bold text-[#0078D2] bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200">
+                        <span className="text-[10px] font-bold text-[#0078D2] dark:text-sky-300 bg-sky-50 dark:bg-sky-950/60 px-2 py-0.5 rounded-full border border-sky-200 dark:border-sky-800">
                           {booking.cabinClass}
                         </span>
                       </div>

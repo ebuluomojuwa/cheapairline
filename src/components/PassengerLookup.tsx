@@ -172,7 +172,7 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
       </div>
 
       {/* Search Bar & Filters */}
-      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-md border border-slate-200/80 space-y-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-6 shadow-md border border-slate-200/80 dark:border-slate-800 space-y-4">
         <div className="flex flex-col md:flex-row gap-4 items-center">
           <div className="relative flex-1 w-full">
             <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -181,12 +181,12 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Input Flight Ticket Number (e.g. 001-9482-7710), Seat (02B), or Name..."
-              className="w-full pl-12 pr-10 py-3.5 rounded-xl border border-slate-300 focus:border-[#C41230] focus:ring-2 focus:ring-red-100 outline-none transition text-slate-900 font-bold placeholder-slate-400 text-sm sm:text-base shadow-inner"
+              className="w-full pl-12 pr-10 py-3.5 rounded-xl border border-slate-300 dark:border-slate-700 focus:border-[#C41230] focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/40 outline-none transition text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 font-bold placeholder-slate-400 dark:placeholder-slate-500 text-sm sm:text-base shadow-inner"
             />
             {query && (
               <button
                 onClick={() => setQuery('')}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs bg-slate-100 hover:bg-slate-200 p-1 rounded-full"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 p-1 rounded-full"
               >
                 ✕
               </button>
@@ -197,7 +197,7 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
             <select
               value={selectedFlightFilter}
               onChange={(e) => setSelectedFlightFilter(e.target.value)}
-              className="w-full py-3.5 px-4 rounded-xl border border-slate-300 focus:border-[#0078D2] focus:ring-2 focus:ring-sky-100 outline-none text-slate-700 font-bold text-sm bg-white"
+              className="w-full py-3.5 px-4 rounded-xl border border-slate-300 dark:border-slate-700 focus:border-[#0078D2] focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-900/40 outline-none text-slate-700 dark:text-slate-200 font-bold text-sm bg-white dark:bg-slate-800"
             >
               <option value="all">✈️ All AA Flight Manifests</option>
               {flights.map((f) => (
@@ -209,10 +209,10 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-100">
+        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
           <span>Showing {matchedBookings.length} matching booking record(s)</span>
           {query && (
-            <span className="font-mono text-[#C41230] font-extrabold bg-red-50 px-2.5 py-0.5 rounded border border-red-200">
+            <span className="font-mono text-[#C41230] dark:text-red-400 font-extrabold bg-red-50 dark:bg-red-950/60 px-2.5 py-0.5 rounded border border-red-200 dark:border-red-900/60">
               Filter: "{query}"
             </span>
           )}
@@ -246,7 +246,7 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
             return (
               <div
                 key={booking.id}
-                className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden transition-all hover:shadow-xl"
+                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden transition-all hover:shadow-xl"
               >
                 {/* Card Header: Flight & Verification Status */}
                 <div className="bg-gradient-to-r from-[#001E42] via-[#002D62] to-[#00152E] p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -290,15 +290,15 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
                 {/* Main Content: Passenger Profile & Flight Manifest */}
                 <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {/* Column 1: Passenger Personal Identity */}
-                  <div className="space-y-4 lg:col-span-1 border-b lg:border-b-0 lg:border-r border-slate-200 pb-6 lg:pb-0 lg:pr-6">
+                  <div className="space-y-4 lg:col-span-1 border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-800 pb-6 lg:pb-0 lg:pr-6">
                     <div className="flex items-center justify-between">
                       <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                         <User className="w-4 h-4 text-[#0078D2]" /> Passenger Profile
                       </h3>
                       <span className={`text-xs font-extrabold px-2.5 py-0.5 rounded-full border ${
                         isApproved
-                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                          : 'bg-amber-100 text-amber-800 border-amber-300'
+                          ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                          : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800'
                       }`}>
                         {isApproved ? 'Gate Pass Issued' : booking.status}
                       </span>
@@ -307,39 +307,39 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
                     <div className="space-y-3">
                       <div>
                         <label className="text-xs text-slate-400 block font-medium">Full Legal Name</label>
-                        <div className="text-xl font-black text-slate-900 flex items-center gap-2">
+                        <div className="text-xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
                           {booking.passenger.fullName}
-                          <BadgeCheck className="w-5 h-5 text-sky-600" />
+                          <BadgeCheck className="w-5 h-5 text-sky-600 dark:text-sky-400" />
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
                           <span className="text-xs text-slate-400 block font-medium">Gender / DOB</span>
-                          <span className="font-semibold text-slate-700">
+                          <span className="font-semibold text-slate-700 dark:text-slate-200">
                             {booking.passenger.gender}, {booking.passenger.dateOfBirth}
                           </span>
                         </div>
                         <div>
                           <span className="text-xs text-slate-400 block font-medium">Nationality</span>
-                          <span className="font-semibold text-slate-700 flex items-center gap-1">
+                          <span className="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1">
                             <Globe2 className="w-3.5 h-3.5 text-slate-400" />
                             {booking.passenger.nationality}
                           </span>
                         </div>
                       </div>
 
-                      <div className="text-sm space-y-1.5 pt-2 border-t border-slate-100">
-                        <div className="flex items-center gap-2 text-slate-700">
+                      <div className="text-sm space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
                           <Mail className="w-4 h-4 text-slate-400 shrink-0" />
                           <span className="truncate font-mono text-xs">{booking.passenger.email}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-slate-700">
+                        <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
                           <Phone className="w-4 h-4 text-slate-400 shrink-0" />
                           <span className="font-mono text-xs">{booking.passenger.phone}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-slate-700">
-                          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                          <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                           <span className="text-xs font-mono font-bold">Passport: {booking.passenger.passportNumber}</span>
                         </div>
                       </div>
@@ -347,18 +347,18 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
                   </div>
 
                   {/* Column 2: Flight Schedule & Gate Details */}
-                  <div className="space-y-4 lg:col-span-1 border-b lg:border-b-0 lg:border-r border-slate-200 pb-6 lg:pb-0 lg:pr-6">
+                  <div className="space-y-4 lg:col-span-1 border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-800 pb-6 lg:pb-0 lg:pr-6">
                     <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                       <Plane className="w-4 h-4 text-[#0078D2]" /> Flight Schedule & Gate
                     </h3>
 
                     <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                      <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
                         <div>
                           <span className="text-[11px] text-slate-400 font-bold uppercase block">Departure</span>
-                          <div className="text-lg font-black text-slate-800">{booking.origin.code}</div>
-                          <div className="text-xs font-semibold text-slate-600">{booking.origin.city}</div>
-                          <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1 font-mono">
+                          <div className="text-lg font-black text-slate-800 dark:text-slate-100">{booking.origin.code}</div>
+                          <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">{booking.origin.city}</div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1 font-mono">
                             <Clock className="w-3 h-3" />
                             {new Date(booking.departureTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </div>
@@ -366,9 +366,9 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
 
                         <div>
                           <span className="text-[11px] text-slate-400 font-bold uppercase block">Arrival</span>
-                          <div className="text-lg font-black text-slate-800">{booking.destination.code}</div>
-                          <div className="text-xs font-semibold text-slate-600">{booking.destination.city}</div>
-                          <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1 font-mono">
+                          <div className="text-lg font-black text-slate-800 dark:text-slate-100">{booking.destination.code}</div>
+                          <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">{booking.destination.city}</div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1 font-mono">
                             <Clock className="w-3 h-3" />
                             {new Date(booking.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </div>
@@ -376,17 +376,17 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
                       </div>
 
                       <div className="grid grid-cols-2 gap-3 text-xs">
-                        <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                        <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800">
                           <span className="text-slate-400 block font-bold">Terminal & Gate</span>
-                          <span className="font-extrabold text-red-600">Terminal {booking.terminal} • Gate {booking.gate}</span>
+                          <span className="font-extrabold text-red-600 dark:text-red-400">Terminal {booking.terminal} • Gate {booking.gate}</span>
                         </div>
-                        <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                        <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800">
                           <span className="text-slate-400 block font-bold">Cabin Class</span>
-                          <span className="font-extrabold text-[#0078D2]">{booking.cabinClass}</span>
+                          <span className="font-extrabold text-[#0078D2] dark:text-sky-300">{booking.cabinClass}</span>
                         </div>
                       </div>
 
-                      <div className="text-xs text-slate-500 flex items-center gap-2">
+                      <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
                         <Calendar className="w-3.5 h-3.5 text-slate-400" />
                         <span>Date: {new Date(booking.departureTime).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
                       </div>
@@ -401,37 +401,37 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
                       </h3>
 
                       <div className="space-y-2 text-xs">
-                        <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
-                          <span className="text-slate-500 flex items-center gap-1.5">
+                        <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                          <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                             <Utensils className="w-3.5 h-3.5 text-amber-500" /> Meal Selection
                           </span>
-                          <span className="font-bold text-slate-800">{booking.passenger.mealPreference}</span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200">{booking.passenger.mealPreference}</span>
                         </div>
 
-                        <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
-                          <span className="text-slate-500 flex items-center gap-1.5">
+                        <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                          <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                             <Luggage className="w-3.5 h-3.5 text-sky-500" /> Checked Bags
                           </span>
-                          <span className="font-bold text-slate-800">{booking.passenger.baggageCount} Piece(s)</span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200">{booking.passenger.baggageCount} Piece(s)</span>
                         </div>
 
                         {/* Verification Clearance Status Card */}
                         <div className={`p-3.5 rounded-xl border transition-all ${
                           isApproved 
-                            ? 'bg-emerald-50 border-emerald-300 text-emerald-950' 
-                            : 'bg-sky-50 border-sky-200 text-sky-950'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-800 text-emerald-950 dark:text-emerald-200' 
+                            : 'bg-sky-50 dark:bg-sky-950/50 border-sky-200 dark:border-sky-800 text-sky-950 dark:text-sky-200'
                         }`}>
                           <div className="flex items-center gap-2 mb-1">
                             {isApproved ? (
-                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                             ) : (
-                              <BadgeCheck className="w-4 h-4 text-[#0078D2]" />
+                              <BadgeCheck className="w-4 h-4 text-[#0078D2] dark:text-sky-400" />
                             )}
                             <span className="font-black text-xs uppercase tracking-wide">
                               {isApproved ? 'Gate Boarding Clearance Pass Active' : 'Ticket Valid - Ready for Gate Pass'}
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-600 leading-tight">
+                          <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-tight">
                             {isApproved 
                               ? `Cleared by Gate Agent. Pass issued for passenger ${booking.passenger.fullName}.` 
                               : `Ticket ${booking.ticketNumber} verified in system. Click below to grant gate boarding pass.`}
@@ -441,7 +441,7 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
                     </div>
 
                     {/* Action Buttons for Front Desk / Passenger */}
-                    <div className="pt-3 border-t border-slate-100 space-y-2">
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
                       {userRole === 'admin' && !isApproved ? (
                         <button
                           onClick={() => handleGrantPass(booking)}
@@ -461,7 +461,7 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
                       <div className="flex items-center justify-between text-[11px] text-slate-400">
                         <button
                           onClick={() => onViewBoardingPass(booking)}
-                          className="text-[#0078D2] hover:underline font-bold flex items-center gap-1"
+                          className="text-[#0078D2] dark:text-sky-400 hover:underline font-bold flex items-center gap-1"
                         >
                           View E-Ticket
                         </button>
@@ -472,7 +472,7 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
                               onCancelBooking(booking.id);
                             }
                           }}
-                          className="text-rose-600 hover:underline font-semibold flex items-center gap-1"
+                          className="text-rose-600 dark:text-rose-400 hover:underline font-semibold flex items-center gap-1"
                         >
                           <XCircle className="w-3 h-3" /> Cancel Ticket
                         </button>

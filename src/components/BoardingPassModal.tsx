@@ -17,7 +17,7 @@ export const BoardingPassModal: React.FC<BoardingPassModalProps> = ({ booking, o
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-8 max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-3xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-8 max-h-[90vh] overflow-y-auto">
         {/* Modal Close & Actions */}
         <div className="bg-gradient-to-r from-[#001E42] via-[#002D62] to-[#00152E] px-6 py-4 flex items-center justify-between border-b border-slate-800 text-white">
           <div className="flex items-center gap-3">
@@ -41,8 +41,8 @@ export const BoardingPassModal: React.FC<BoardingPassModalProps> = ({ booking, o
         </div>
 
         {/* Boarding Pass Container (Printable Area) */}
-        <div className="p-6 sm:p-8 bg-slate-50 space-y-6">
-          <div className="bg-white rounded-3xl border-2 border-slate-900 shadow-xl overflow-hidden">
+        <div className="p-6 sm:p-8 bg-slate-50 dark:bg-slate-950 space-y-6">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border-2 border-slate-900 dark:border-slate-700 shadow-xl overflow-hidden">
             {/* Airline Header Bar */}
             <div className="bg-gradient-to-r from-[#001E42] to-[#002D62] p-6 text-white flex flex-wrap items-center justify-between gap-4 border-b-2 border-slate-800">
               <div className="flex items-center gap-4">
@@ -66,13 +66,13 @@ export const BoardingPassModal: React.FC<BoardingPassModalProps> = ({ booking, o
             {/* Boarding Pass Body */}
             <div className="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-3 gap-6 relative">
               {/* Main Flight Route Section (2 cols) */}
-              <div className="md:col-span-2 space-y-6 border-b md:border-b-0 md:border-r border-slate-200 pb-6 md:pb-0 md:pr-6">
+              <div className="md:col-span-2 space-y-6 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 pb-6 md:pb-0 md:pr-6">
                 {/* Passenger Name & Seat Box */}
-                <div className="flex items-center justify-between bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
                   <div>
                     <span className="text-xs text-slate-400 font-bold uppercase block">Passenger Name</span>
-                    <span className="text-xl font-black text-slate-900">{booking.passenger.fullName}</span>
-                    <span className="text-xs text-slate-500 block font-mono mt-0.5">
+                    <span className="text-xl font-black text-slate-900 dark:text-slate-100">{booking.passenger.fullName}</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 block font-mono mt-0.5">
                       Passport: {booking.passenger.passportNumber}
                     </span>
                   </div>
@@ -84,15 +84,15 @@ export const BoardingPassModal: React.FC<BoardingPassModalProps> = ({ booking, o
                 </div>
 
                 {/* Route Visual Diagram */}
-                <div className="flex items-center justify-between bg-gradient-to-r from-sky-50 via-white to-red-50 p-6 rounded-2xl border border-sky-100">
+                <div className="flex items-center justify-between bg-gradient-to-r from-sky-50 via-white to-red-50 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 p-6 rounded-2xl border border-sky-100 dark:border-slate-700">
                   <div className="text-left">
-                    <span className="text-3xl font-black text-slate-900">{booking.origin.code}</span>
-                    <span className="text-xs font-semibold text-slate-600 block">{booking.origin.city}</span>
+                    <span className="text-3xl font-black text-slate-900 dark:text-slate-100">{booking.origin.code}</span>
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 block">{booking.origin.city}</span>
                     <span className="text-[10px] text-slate-400 block">{booking.origin.airport}</span>
                   </div>
 
                   <div className="flex-1 px-6 flex flex-col items-center">
-                    <span className="text-xs font-bold text-[#0078D2] font-mono mb-1">{booking.flightNumber}</span>
+                    <span className="text-xs font-bold text-[#0078D2] dark:text-sky-400 font-mono mb-1">{booking.flightNumber}</span>
                     <div className="w-full flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full bg-[#0078D2]" />
                       <div className="flex-1 h-0.5 bg-sky-300 border-t border-dashed border-sky-400 relative">
@@ -100,40 +100,40 @@ export const BoardingPassModal: React.FC<BoardingPassModalProps> = ({ booking, o
                       </div>
                       <div className="w-2.5 h-2.5 rounded-full bg-[#C41230]" />
                     </div>
-                    <span className="text-[10px] font-bold text-slate-500 mt-1">{booking.cabinClass} Class</span>
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1">{booking.cabinClass} Class</span>
                   </div>
 
                   <div className="text-right">
-                    <span className="text-3xl font-black text-slate-900">{booking.destination.code}</span>
-                    <span className="text-xs font-semibold text-slate-600 block">{booking.destination.city}</span>
+                    <span className="text-3xl font-black text-slate-900 dark:text-slate-100">{booking.destination.code}</span>
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 block">{booking.destination.city}</span>
                     <span className="text-[10px] text-slate-400 block">{booking.destination.airport}</span>
                   </div>
                 </div>
 
                 {/* Details Grid */}
                 <div className="grid grid-cols-4 gap-3 text-center">
-                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
                     <span className="text-[10px] text-slate-400 font-bold uppercase block">Date</span>
-                    <span className="text-xs font-black text-slate-800">
+                    <span className="text-xs font-black text-slate-800 dark:text-slate-200">
                       {new Date(booking.departureTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                     </span>
                   </div>
 
-                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
                     <span className="text-[10px] text-slate-400 font-bold uppercase block">Departure</span>
-                    <span className="text-xs font-black text-slate-800">
+                    <span className="text-xs font-black text-slate-800 dark:text-slate-200">
                       {new Date(booking.departureTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
 
-                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
                     <span className="text-[10px] text-slate-400 font-bold uppercase block">Terminal</span>
-                    <span className="text-xs font-black text-slate-800">{booking.terminal}</span>
+                    <span className="text-xs font-black text-slate-800 dark:text-slate-200">{booking.terminal}</span>
                   </div>
 
-                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
                     <span className="text-[10px] text-slate-400 font-bold uppercase block">Gate</span>
-                    <span className="text-xs font-black text-red-600">{booking.gate}</span>
+                    <span className="text-xs font-black text-red-600 dark:text-red-400">{booking.gate}</span>
                   </div>
                 </div>
               </div>

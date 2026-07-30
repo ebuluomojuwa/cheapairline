@@ -63,17 +63,17 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
 
       {/* Bookings List */}
       {filtered.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3 shadow-md">
-          <Ticket className="w-12 h-12 text-slate-300 mx-auto" />
-          <h3 className="font-bold text-slate-700 text-lg">No Bookings Found</h3>
-          <p className="text-xs text-slate-500">There are no passenger bookings matching your search filter.</p>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3 shadow-md">
+          <Ticket className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto" />
+          <h3 className="font-bold text-slate-700 dark:text-slate-200 text-lg">No Bookings Found</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">There are no passenger bookings matching your search filter.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {filtered.map((booking) => (
             <div
               key={booking.id}
-              className="bg-white rounded-3xl border border-slate-200 shadow-lg hover:shadow-xl transition-all overflow-hidden flex flex-col justify-between"
+              className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg hover:shadow-xl transition-all overflow-hidden flex flex-col justify-between"
             >
               {/* Header */}
               <div className="bg-gradient-to-r from-[#001E42] to-[#002D62] text-white p-5 flex items-center justify-between border-b border-slate-800">
@@ -103,32 +103,32 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
                     <span className="text-[10px] uppercase text-slate-400 font-bold block">Passenger</span>
                     <button
                       onClick={() => onInspectPassenger(booking)}
-                      className="text-base font-black text-slate-900 hover:text-[#0078D2] transition text-left"
+                      className="text-base font-black text-slate-900 dark:text-slate-100 hover:text-[#0078D2] dark:hover:text-sky-300 transition text-left"
                     >
                       {booking.passenger.fullName}
                     </button>
                   </div>
 
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold border border-emerald-200">
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-extrabold border border-emerald-200 dark:border-emerald-800">
                     {booking.status}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100 text-xs">
+                <div className="grid grid-cols-2 gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 text-xs">
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase font-bold block">Route</span>
-                    <span className="font-black text-slate-800">{booking.origin.code} ➔ {booking.destination.code}</span>
-                    <span className="text-[10px] text-slate-500 block">{booking.origin.city} to {booking.destination.city}</span>
+                    <span className="font-black text-slate-800 dark:text-slate-200">{booking.origin.code} ➔ {booking.destination.code}</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block">{booking.origin.city} to {booking.destination.city}</span>
                   </div>
 
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase font-bold block">Cabin Class</span>
-                    <span className="font-extrabold text-[#0078D2]">{booking.cabinClass}</span>
-                    <span className="text-[10px] text-slate-500 block">${booking.pricePaid} Paid</span>
+                    <span className="font-extrabold text-[#0078D2] dark:text-sky-300">{booking.cabinClass}</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block">${booking.pricePaid} Paid</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-slate-600 font-medium">
+                <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300 font-medium">
                   <span className="flex items-center gap-1">
                     <Utensils className="w-3.5 h-3.5 text-amber-500" />
                     {booking.passenger.mealPreference}
@@ -141,7 +141,7 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
               </div>
 
               {/* Footer Actions */}
-              <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center gap-2">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
                 <button
                   onClick={() => onViewBoardingPass(booking)}
                   className="flex-1 bg-[#0078D2] hover:bg-[#0060A9] text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-sky-600/20"
@@ -151,21 +151,22 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
 
                 <button
                   onClick={() => onInspectPassenger(booking)}
-                  className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2.5 px-3.5 rounded-xl text-xs transition"
+                  className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-bold py-2.5 px-3.5 rounded-xl text-xs transition"
                 >
                   Inspect
                 </button>
 
                 <button
                   onClick={() => {
-                    if (confirm(`Cancel booking ${booking.ticketNumber}?`)) {
+                    if (confirm(`Are you sure you want to cancel booking ${booking.ticketNumber}?`)) {
                       onCancelBooking(booking.id);
                     }
                   }}
-                  className="bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold py-2.5 px-3 rounded-xl text-xs border border-rose-200 transition"
+                  className="bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 font-bold py-2.5 px-3 rounded-xl text-xs transition border border-rose-200 dark:border-rose-800/60 flex items-center gap-1"
                   title="Cancel Ticket"
                 >
-                  <XCircle className="w-4 h-4" />
+                  <XCircle className="w-3.5 h-3.5" />
+                  <span>Cancel</span>
                 </button>
               </div>
             </div>
