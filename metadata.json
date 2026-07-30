@@ -1,0 +1,6 @@
+{
+  "name": "American Airlines Flight & Seat Hub",
+  "description": "Book American Airlines flights, select seats, explore aircraft seat maps, and lookup complete passenger details by seat or ticket number.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
