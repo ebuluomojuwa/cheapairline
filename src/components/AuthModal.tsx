@@ -88,15 +88,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setLoading(false);
       console.error('Google Auth error:', err);
       if (err.code === 'auth/operation-not-allowed') {
-        setError('Google Sign-In is not enabled in your Firebase Console yet (auth/operation-not-allowed). Please enable Google Auth in your Firebase Authentication settings.');
+        setError('Google Sign-In is not enabled in your Firebase Console yet (auth/operation-not-allowed). To enable: Open Firebase Console -> Authentication -> Sign-in method -> Google -> Enable.');
+        setShowBypass(true);
+      } else if (err.code === 'auth/argument-error') {
+        setError('Google popup authentication setup error (auth/argument-error). Please verify Google Auth is enabled in Firebase Console or click "Continue as Demo User" below to test.');
         setShowBypass(true);
       } else if (err.code === 'auth/unauthorized-domain') {
-        setError('This domain is not authorized in Firebase. To fix: Open Firebase Console -> Authentication -> Settings -> Authorized Domains, and add your Vercel app domain.');
+        setError('This domain is not authorized in Firebase. To fix: Open Firebase Console -> Authentication -> Settings -> Authorized Domains, and add your app domain.');
         setShowBypass(true);
       } else if (err.code === 'auth/popup-closed-by-user') {
         setError('Google sign-in popup was closed before completing.');
+      } else if (err?.message?.includes('transaction was aborted') || err?.message?.includes('QuotaExceededError')) {
+        setError('Browser storage/IndexedDB transaction failed. Switched to session memory mode. Please click "Continue with Google" again.');
       } else {
         setError(err.message || 'Failed to sign in with Google.');
+        setShowBypass(true);
       }
     }
   };

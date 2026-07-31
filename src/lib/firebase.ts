@@ -2,9 +2,10 @@ import { initializeApp } from 'firebase/app';
 import { 
   getAuth, 
   initializeAuth,
-  indexedDBLocalPersistence,
   browserLocalPersistence,
   inMemoryPersistence,
+  browserPopupRedirectResolver,
+  setPersistence,
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signInWithPopup,
@@ -54,11 +55,12 @@ const app = initializeApp({
   appId: firebaseConfigData.appId,
 });
 
-// Initialize Firebase Auth with persistence fallbacks to prevent IndexedDB QuotaExceeded errors
+// Initialize Firebase Auth using browserLocalPersistence and inMemoryPersistence to bypass IndexedDB transaction bugs
 let authInstance;
 try {
   authInstance = initializeAuth(app, {
-    persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence]
+    persistence: [browserLocalPersistence, inMemoryPersistence],
+    popupRedirectResolver: browserPopupRedirectResolver,
   });
 } catch {
   authInstance = getAuth(app);
@@ -77,9 +79,30 @@ export const db = firebaseConfigData.firestoreDatabaseId
  */
 export async function signInWithGoogle(): Promise<AppUserProfile> {
   const provider = new GoogleAuthProvider();
-  const cred = await signInWithPopup(auth, provider);
-  const profile = await syncUserProfile(cred.user);
-  return profile;
+  provider.setCustomParameters({ prompt: 'select_account' });
+  try {
+    const cred = await signInWithPopup(auth, provider, browserPopupRedirectResolver);
+    const profile = await syncUserProfile(cred.user);
+    return profile;
+  } catch (err: any) {
+    console.warn('Google sign in initial attempt failed:', err);
+    // If IndexedDB or storage transaction error occurred, switch persistence to inMemory and retry
+    if (
+      err?.message?.includes('transaction was aborted') ||
+      err?.message?.includes('QuotaExceededError') ||
+      err?.code === 'auth/internal-error'
+    ) {
+      try {
+        await setPersistence(auth, inMemoryPersistence);
+        const cred = await signInWithPopup(auth, provider, browserPopupRedirectResolver);
+        const profile = await syncUserProfile(cred.user);
+        return profile;
+      } catch (retryErr) {
+        throw retryErr;
+      }
+    }
+    throw err;
+  }
 }
 
 /**
