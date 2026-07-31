@@ -31,7 +31,7 @@ import confetti from 'canvas-confetti';
 interface PassengerLookupProps {
   bookings: Booking[];
   flights: Flight[];
-  userRole?: 'passenger' | 'admin';
+  userRole?: 'passenger' | 'admin' | 'superadmin';
   onViewBoardingPass: (booking: Booking) => void;
   onCancelBooking: (bookingId: string) => void;
   onApproveGatePass?: (bookingId: string) => void;
@@ -41,7 +41,7 @@ interface PassengerLookupProps {
 export const PassengerLookup: React.FC<PassengerLookupProps> = ({
   bookings,
   flights,
-  userRole = 'admin',
+  userRole = 'passenger',
   onViewBoardingPass,
   onCancelBooking,
   onApproveGatePass,
@@ -51,10 +51,15 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
   const [selectedFlightFilter, setSelectedFlightFilter] = useState<string>('all');
   const [justApprovedId, setJustApprovedId] = useState<string | null>(null);
 
+  const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+
   // Filter logic: search by seat number, ticket number, confirmation code, or passenger name
   const matchedBookings = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return bookings;
+    // Non-admins must enter a search query (ticket number or passenger name) to retrieve tickets
+    if (!q) {
+      return isAdmin ? bookings : [];
+    }
 
     return bookings.filter((b) => {
       const matchFlight = selectedFlightFilter === 'all' || b.flightId === selectedFlightFilter || b.flightNumber.toLowerCase().includes(selectedFlightFilter.toLowerCase());
@@ -79,7 +84,7 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
         flightNum.includes(q)
       );
     });
-  }, [query, bookings, selectedFlightFilter]);
+  }, [query, bookings, selectedFlightFilter, isAdmin]);
 
   const handleQuickSample = (sampleText: string) => {
     setQuery(sampleText);
@@ -221,22 +226,37 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
 
       {/* Results List */}
       {matchedBookings.length === 0 ? (
-        <div className="bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-12 text-center space-y-4">
-          <div className="w-16 h-16 bg-slate-200/70 rounded-full flex items-center justify-center mx-auto text-slate-500">
-            <AlertCircle className="w-8 h-8" />
+        <div className="bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-800 rounded-2xl p-12 text-center space-y-4">
+          <div className="w-16 h-16 bg-sky-100 dark:bg-sky-950 rounded-full flex items-center justify-center mx-auto text-[#0078D2] dark:text-sky-400">
+            {!query ? <Ticket className="w-8 h-8" /> : <AlertCircle className="w-8 h-8 text-amber-500" />}
           </div>
-          <div className="space-y-1">
-            <h3 className="text-lg font-bold text-slate-800">No Booking Ticket Record Found</h3>
-            <p className="text-slate-500 text-sm max-w-md mx-auto">
-              We couldn't find any passenger matching ticket or seat query "{query}". Please verify the ticket number (e.g. <span className="font-mono font-bold text-red-600">001-9482-7710</span>) or passenger name.
+          <div className="space-y-2">
+            <h3 className="text-xl font-extrabold text-slate-800 dark:text-slate-100">
+              {!query ? 'Search Your Flight Ticket' : 'No Booking Ticket Record Found'}
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400 text-sm max-w-md mx-auto leading-relaxed">
+              {!query ? (
+                <span>
+                  Please enter your <strong>Ticket Number</strong> (e.g. <span className="font-mono font-extrabold text-red-600 dark:text-red-400">001-9482-7710</span>) or <strong>Passenger Name</strong> (e.g. Elizabeth Gutierrez) in the search box above to view your ticket.
+                </span>
+              ) : (
+                <span>
+                  We couldn't find any ticket matching "{query}". Please verify your ticket number or passenger name and try again.
+                </span>
+              )}
             </p>
           </div>
-          <button
-            onClick={() => setQuery('')}
-            className="inline-flex items-center gap-2 text-sm font-bold text-[#0078D2] hover:text-[#0060A9] bg-sky-50 px-4 py-2 rounded-xl border border-sky-200"
-          >
-            Clear Filter & Show All Ticket Manifests
-          </button>
+          {!query && (
+            <div className="pt-2 flex justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setQuery('001-9482-7710')}
+                className="inline-flex items-center gap-2 text-xs font-bold text-white bg-[#0078D2] hover:bg-[#0060A9] px-4 py-2 rounded-xl transition shadow-sm"
+              >
+                <Ticket className="w-4 h-4 text-white" /> Try Sample Ticket: 001-9482-7710
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-6">

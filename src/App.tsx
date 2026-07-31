@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Flight, Booking, Seat } from './types';
-import { INITIAL_FLIGHTS, INITIAL_BOOKINGS } from './data/mockData';
+import { Flight, Booking, Seat, AppUser, UserRole } from './types';
+import { INITIAL_FLIGHTS } from './data/mockData';
 import { Header } from './components/Header';
 import { FlightSearch } from './components/FlightSearch';
 import { PassengerLookup } from './components/PassengerLookup';
@@ -10,11 +10,51 @@ import { BookingModal } from './components/BookingModal';
 import { BoardingPassModal } from './components/BoardingPassModal';
 import { AdminAuthModal } from './components/AdminAuthModal';
 import { FlightCalculatorModal } from './components/FlightCalculatorModal';
+import { AuthModal } from './components/AuthModal';
+import { AdminUsersPage } from './components/AdminUsersPage';
+import { BookingRestrictedModal } from './components/BookingRestrictedModal';
+import { 
+  auth, 
+  db, 
+  subscribeBookings, 
+  addBookingToFirestore, 
+  updateBookingInFirestore, 
+  deleteBookingFromFirestore, 
+  syncUserProfile, 
+  AppUserProfile,
+  SUPER_ADMIN_EMAIL
+} from './lib/firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 export default function App() {
   const [flights] = useState<Flight[]>(INITIAL_FLIGHTS);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState<boolean>(false);
-  
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [isBookingRestrictedModalOpen, setIsBookingRestrictedModalOpen] = useState<boolean>(false);
+  const [currentUser, setCurrentUser] = useState<AppUserProfile | null>(null);
+  const [footerClicks, setFooterClicks] = useState<number>(0);
+
+  const handleFooterClick = () => {
+    setFooterClicks((prev) => {
+      const next = prev + 1;
+      if (next >= 5) {
+        setIsAuthModalOpen(true);
+        return 0;
+      }
+      return next;
+    });
+  };
+
+  const isSuperAdmin = currentUser?.role === 'superadmin' || currentUser?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+
+  const handleInitiateBooking = (flight?: Flight) => {
+    if (!isSuperAdmin) {
+      setIsBookingRestrictedModalOpen(true);
+    } else {
+      setBookingFlight(flight || flights[0]);
+    }
+  };
+
   // Theme state: Dark mode vs Light mode
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     try {
@@ -35,103 +75,110 @@ export default function App() {
     }
   }, [isDarkMode]);
 
-  // LocalStorage persistence for bookings so user edits/new bookings persist
-  const [bookings, setBookings] = useState<Booking[]>(() => {
-    try {
-      const saved = localStorage.getItem('aeroreserve_bookings');
-      if (saved) {
-        const parsed: Booking[] = JSON.parse(saved);
-        // Deduplicate using a Map keyed by booking ID
-        const bookingMap = new Map<string, Booking>();
-        // First populate with INITIAL_BOOKINGS (ensures current default records are present)
-        INITIAL_BOOKINGS.forEach((b) => bookingMap.set(b.id, b));
-        // Then overlay saved bookings for any custom created bookings (or user modifications)
-        if (Array.isArray(parsed)) {
-          parsed.forEach((b) => {
-            if (b && b.id) {
-              // If it's a new booking created by user or updated default, set it
-              bookingMap.set(b.id, b);
-            }
-          });
-        }
-        return Array.from(bookingMap.values());
-      }
-    } catch (e) {
-      console.error('Failed to load saved bookings', e);
-    }
-    return INITIAL_BOOKINGS;
-  });
+  // Real-time Firestore Bookings State
+  const [bookings, setBookings] = useState<Booking[]>([]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('aeroreserve_bookings', JSON.stringify(bookings));
-    } catch (e) {
-      console.error('Failed to save bookings', e);
-    }
-  }, [bookings]);
+    // Subscribe to Firestore bookings
+    const unsub = subscribeBookings((list) => {
+      setBookings(list);
+    });
 
-  // User Role State: 'passenger' | 'admin'
-  const [userRole, setUserRole] = useState<'passenger' | 'admin'>('passenger');
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('aeroreserve_admin_auth') === 'true';
-  });
+    return () => unsub();
+  }, []);
+
+  // User Role State: 'passenger' | 'admin' | 'superadmin'
+  const [userRole, setUserRole] = useState<'passenger' | 'admin' | 'superadmin'>('passenger');
   const [isAdminAuthModalOpen, setIsAdminAuthModalOpen] = useState<boolean>(false);
 
+  // Listen to Firebase Auth state
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const profile = await syncUserProfile(user);
+          setCurrentUser(profile);
+          if (profile.role === 'superadmin' || profile.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) {
+            setUserRole('superadmin');
+          } else if (profile.role === 'admin') {
+            setUserRole('admin');
+          } else {
+            setUserRole('passenger');
+          }
+        } catch (e) {
+          console.error('Error syncing user profile:', e);
+        }
+      } else {
+        setCurrentUser(null);
+        setUserRole('passenger');
+      }
+    });
+
+    return () => unsub();
+  }, []);
+
+  const handleAuthLogout = async () => {
+    await signOut(auth);
+    setCurrentUser(null);
+    setUserRole('passenger');
+    setActiveTab('search');
+  };
+
   const handleAdminAuthSuccess = () => {
-    setIsAdminAuthenticated(true);
-    localStorage.setItem('aeroreserve_admin_auth', 'true');
     setUserRole('admin');
     setActiveTab('lookup');
     setIsAdminAuthModalOpen(false);
   };
 
-  const handleAdminLogout = () => {
-    setIsAdminAuthenticated(false);
-    localStorage.removeItem('aeroreserve_admin_auth');
-    setUserRole('passenger');
-    setActiveTab('search');
-  };
-
   // Navigation State
-  const [activeTab, setActiveTab] = useState<'search' | 'lookup' | 'seat-explorer' | 'my-bookings'>('search');
+  const [activeTab, setActiveTab] = useState<'search' | 'lookup' | 'seat-explorer' | 'my-bookings' | 'admin-users'>('search');
   const [lookupQuery, setLookupQuery] = useState<string>('');
 
   // Modals
   const [bookingFlight, setBookingFlight] = useState<Flight | null>(null);
   const [boardingPassBooking, setBoardingPassBooking] = useState<Booking | null>(null);
 
-  // Handlers
-  const handleBookingComplete = (newBooking: Booking) => {
-    setBookings((prev) => [newBooking, ...prev]);
+  // Handlers for Firestore CRUD
+  const handleBookingComplete = async (newBooking: Booking) => {
+    try {
+      await addBookingToFirestore(newBooking);
+    } catch (e) {
+      console.error('Failed to add booking to Firestore, maintaining local fallback:', e);
+      setBookings((prev) => [newBooking, ...prev]);
+    }
   };
 
-  const handleCancelBooking = (bookingId: string) => {
-    setBookings((prev) => prev.filter((b) => b.id !== bookingId));
+  const handleCancelBooking = async (bookingId: string) => {
+    try {
+      await updateBookingInFirestore(bookingId, { status: 'Cancelled' });
+    } catch (e) {
+      console.error('Failed to update booking status in Firestore:', e);
+      setBookings((prev) => prev.filter((b) => b.id !== bookingId));
+    }
   };
 
-  const handleApproveGatePass = (bookingId: string) => {
-    setBookings((prev) =>
-      prev.map((b) =>
-        b.id === bookingId
-          ? {
-              ...b,
-              status: 'Checked In',
-              gatePassApproved: true,
-              gatePassApprovedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              verifiedByAgent: 'AA Front Desk Desk Agent #714',
-            }
-          : b
-      )
-    );
+  const handleApproveGatePass = async (bookingId: string) => {
+    const updates: Partial<Booking> = {
+      status: 'Checked In',
+      gatePassApproved: true,
+      gatePassApprovedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      verifiedByAgent: currentUser ? `${currentUser.displayName} (${currentUser.role})` : 'AA Front Desk Agent #714',
+    };
+
+    try {
+      await updateBookingInFirestore(bookingId, updates);
+    } catch (e) {
+      console.error('Failed to update gate pass in Firestore:', e);
+    }
   };
 
   const handleInspectPassenger = (booking: Booking) => {
-    setLookupQuery(booking.seatNumber);
+    setLookupQuery(booking.ticketNumber || booking.seatNumber);
     setActiveTab('lookup');
   };
 
   const handleBookSpecificSeat = (flight: Flight, seat: Seat) => {
-    setBookingFlight(flight);
+    handleInitiateBooking(flight);
   };
 
   return (
@@ -141,23 +188,17 @@ export default function App() {
       {/* Navbar Header */}
       <Header
         userRole={userRole}
-        setUserRole={(role) => {
-          if (role === 'admin' && !isAdminAuthenticated) {
-            setIsAdminAuthModalOpen(true);
-          } else {
-            setUserRole(role);
-          }
-        }}
-        isAdminAuthenticated={isAdminAuthenticated}
-        onOpenAdminAuth={() => setIsAdminAuthModalOpen(true)}
-        onAdminLogout={handleAdminLogout}
+        setUserRole={setUserRole}
+        currentUser={currentUser}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onLogout={handleAuthLogout}
         activeTab={activeTab}
         setActiveTab={(tab) => {
           setActiveTab(tab);
           if (tab !== 'lookup') setLookupQuery('');
         }}
         bookingCount={bookings.length}
-        onQuickBookClick={() => setBookingFlight(flights[0])}
+        onQuickBookClick={() => handleInitiateBooking(flights[0])}
         onOpenCalculator={() => setIsCalculatorOpen(true)}
         isDarkMode={isDarkMode}
         onToggleDarkMode={() => setIsDarkMode((prev) => !prev)}
@@ -168,7 +209,7 @@ export default function App() {
         {activeTab === 'search' && (
           <FlightSearch
             flights={flights}
-            onSelectFlight={(flight) => setBookingFlight(flight)}
+            onSelectFlight={(flight) => handleInitiateBooking(flight)}
             onGoToLookup={() => setActiveTab('lookup')}
             onOpenCalculator={() => setIsCalculatorOpen(true)}
           />
@@ -203,14 +244,27 @@ export default function App() {
             onInspectPassenger={handleInspectPassenger}
           />
         )}
+
+        {activeTab === 'admin-users' && (
+          <AdminUsersPage currentUser={currentUser} />
+        )}
       </main>
 
       {/* Footer */}
-      <footer className="bg-slate-900 border-t border-slate-800 text-slate-400 text-xs py-8 px-4 text-center space-y-2">
-        <p className="font-semibold text-slate-300">AeroReserve • Flight Booking & Seat Lookup System</p>
+      <footer 
+        onClick={handleFooterClick}
+        className="bg-slate-900 border-t border-slate-800 text-slate-400 text-xs py-8 px-4 text-center space-y-2 cursor-pointer select-none transition hover:bg-slate-850"
+        title="Click 5 times to open Sign In / Authentication portal"
+      >
+        <p className="font-semibold text-slate-300">American Airlines • Flight Reservation & Ticket System</p>
         <p className="text-slate-500">
-          Enter any seat number (e.g. 01A, 12F) or ticket number to view complete passenger manifests.
+          Search by Ticket Number (e.g. 001-9482-7710) or Passenger Name to view flight tickets & duration.
         </p>
+        {footerClicks > 0 && footerClicks < 5 && (
+          <p className="text-[11px] font-bold text-sky-400 font-mono animate-pulse pt-1">
+            🔒 Sign In Access: Click {5 - footerClicks} more time{5 - footerClicks > 1 ? 's' : ''} to open authentication
+          </p>
+        )}
       </footer>
 
       {/* Booking Flow Modal */}
@@ -234,6 +288,24 @@ export default function App() {
         />
       )}
 
+      {/* Auth Modal for optional user sign up / sign in */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onAuthSuccess={() => setIsAuthModalOpen(false)}
+        onSetUser={(u) => {
+          setCurrentUser(u);
+          if (u.role === 'superadmin') setUserRole('superadmin');
+        }}
+      />
+
+      {/* Restricted Booking Modal */}
+      <BookingRestrictedModal
+        isOpen={isBookingRestrictedModalOpen}
+        onClose={() => setIsBookingRestrictedModalOpen(false)}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+      />
+
       {/* Admin Security Auth Modal */}
       <AdminAuthModal
         isOpen={isAdminAuthModalOpen}
@@ -245,7 +317,7 @@ export default function App() {
       <FlightCalculatorModal
         isOpen={isCalculatorOpen}
         onClose={() => setIsCalculatorOpen(false)}
-        onBookFlight={(f) => setBookingFlight(f)}
+        onBookFlight={(f) => handleInitiateBooking(f)}
       />
     </div>
   );

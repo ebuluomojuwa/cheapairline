@@ -101,3 +101,13 @@ export interface Booking {
   gatePassApprovedAt?: string;
   verifiedByAgent?: string;
 }
+
+export type UserRole = 'superadmin' | 'admin' | 'user';
+
+export interface AppUser {
+  uid: string;
+  email: string;
+  displayName: string;
+  role: UserRole;
+  createdAt?: string;
+}

@@ -1,0 +1,46 @@
+{
+  "entities": {
+    "users": {
+      "title": "User Profile",
+      "description": "Registered app users and their roles",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["superadmin", "admin", "user"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "bookings": {
+      "title": "Flight Booking Ticket",
+      "description": "Flight booking tickets and passenger manifests",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ticketNumber": { "type": "string" },
+        "confirmationCode": { "type": "string" },
+        "flightId": { "type": "string" },
+        "flightNumber": { "type": "string" },
+        "airline": { "type": "string" },
+        "aircraft": { "type": "string" },
+        "origin": { "type": "object" },
+        "destination": { "type": "object" },
+        "departureTime": { "type": "string" },
+        "arrivalTime": { "type": "string" },
+        "duration": { "type": "string" },
+        "terminal": { "type": "string" },
+        "gate": { "type": "string" },
+        "seatNumber": { "type": "string" },
+        "cabinClass": { "type": "string" },
+        "passenger": { "type": "object" },
+        "bookingDate": { "type": "string" },
+        "status": { "type": "string" },
+        "pricePaid": { "type": "number" },
+        "paymentMethod": { "type": "string" }
+      },
+      "required": ["ticketNumber", "passenger", "flightNumber"]
+    }
+  }
+}

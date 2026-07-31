@@ -1,15 +1,34 @@
-import React from 'react';
-import { Plane, Search, Ticket, Armchair, PlusCircle, ShieldCheck, UserCheck, KeyRound, Building2, Lock, LogOut, Sun, Moon, Calculator } from 'lucide-react';
+import React, { useState } from 'react';
+import { 
+  Plane, 
+  Search, 
+  Ticket, 
+  Armchair, 
+  PlusCircle, 
+  ShieldCheck, 
+  UserCheck, 
+  Building2, 
+  Lock, 
+  LogOut, 
+  Sun, 
+  Moon, 
+  Calculator,
+  Crown,
+  User,
+  Users,
+  LogIn
+} from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
+import { AppUserProfile } from '../lib/firebase';
 
 interface HeaderProps {
-  userRole: 'passenger' | 'admin';
-  setUserRole: (role: 'passenger' | 'admin') => void;
-  isAdminAuthenticated: boolean;
-  onOpenAdminAuth: () => void;
-  onAdminLogout: () => void;
-  activeTab: 'search' | 'lookup' | 'seat-explorer' | 'my-bookings';
-  setActiveTab: (tab: 'search' | 'lookup' | 'seat-explorer' | 'my-bookings') => void;
+  userRole: 'passenger' | 'admin' | 'superadmin';
+  setUserRole: (role: 'passenger' | 'admin' | 'superadmin') => void;
+  currentUser: AppUserProfile | null;
+  onOpenAuthModal: () => void;
+  onLogout: () => void;
+  activeTab: 'search' | 'lookup' | 'seat-explorer' | 'my-bookings' | 'admin-users';
+  setActiveTab: (tab: 'search' | 'lookup' | 'seat-explorer' | 'my-bookings' | 'admin-users') => void;
   bookingCount: number;
   onQuickBookClick: () => void;
   onOpenCalculator?: () => void;
@@ -20,9 +39,9 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   userRole,
   setUserRole,
-  isAdminAuthenticated,
-  onOpenAdminAuth,
-  onAdminLogout,
+  currentUser,
+  onOpenAuthModal,
+  onLogout,
   activeTab,
   setActiveTab,
   bookingCount,
@@ -31,9 +50,13 @@ export const Header: React.FC<HeaderProps> = ({
   isDarkMode,
   onToggleDarkMode,
 }) => {
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const isSuperAdmin = currentUser?.role === 'superadmin' || currentUser?.email?.toLowerCase() === 'ebulupaulboyld@gmail.com';
+  const isAdminOrSuper = isSuperAdmin || currentUser?.role === 'admin' || userRole === 'admin' || userRole === 'superadmin';
+
   return (
     <header className="bg-[#001E42] border-b border-slate-700/80 text-white sticky top-0 z-40 shadow-xl backdrop-blur-md bg-opacity-95">
-      {/* Top micro banner with Role Selector & Dark Mode Toggle */}
+      {/* Top micro banner */}
       <div className="bg-[#00142E] text-slate-300 text-[11px] py-1.5 px-4 border-b border-slate-800">
         <div className="max-w-7xl mx-auto flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-3 sm:gap-4">
@@ -44,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-slate-300 hidden md:inline font-medium">AAdvantage® Member Perks & Seat Management</span>
           </div>
 
-          {/* Theme Toggle & Role Switcher */}
+          {/* Theme Toggle & Auth Section */}
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Dark Mode Theme Button */}
             <button
@@ -66,63 +89,70 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
 
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider hidden sm:inline">Portal View:</span>
-            <div className="bg-slate-900/90 p-1 rounded-xl border border-slate-700/80 flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setUserRole('passenger');
-                  if (activeTab === 'lookup') setActiveTab('search');
-                }}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                  userRole === 'passenger'
-                    ? 'bg-[#0078D2] text-white shadow-sm ring-1 ring-sky-300/40'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <UserCheck className="w-3.5 h-3.5" />
-                <span>Passenger</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (isAdminAuthenticated) {
-                    setUserRole('admin');
-                    setActiveTab('lookup');
-                  } else {
-                    onOpenAdminAuth();
-                  }
-                }}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                  userRole === 'admin'
-                    ? 'bg-[#C41230] text-white shadow-sm ring-1 ring-red-400/40'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {isAdminAuthenticated ? (
-                  <Building2 className="w-3.5 h-3.5 text-emerald-400" />
-                ) : (
-                  <Lock className="w-3.5 h-3.5 text-amber-400" />
-                )}
-                <span>Gate Agent Terminal</span>
-                {!isAdminAuthenticated && (
-                  <span className="text-[9px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded font-mono font-bold">Desk Only</span>
-                )}
-              </button>
-
-              {isAdminAuthenticated && (
+            {/* Authentication Icon / User Profile Button at Top Right */}
+            {currentUser && (
+              <div className="relative">
                 <button
                   type="button"
-                  onClick={onAdminLogout}
-                  title="Lock Agent Terminal & Return to Passenger View"
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold text-rose-300 hover:text-white hover:bg-rose-900/50 transition border border-rose-500/30"
+                  onClick={() => setShowUserDropdown(!showUserDropdown)}
+                  className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-sky-500/40 text-xs font-bold transition shadow-sm"
                 >
-                  <LogOut className="w-3 h-3 text-rose-400" />
-                  <span>Lock</span>
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-white ${
+                    isSuperAdmin ? 'bg-gradient-to-r from-amber-500 to-red-600' : 'bg-sky-600'
+                  }`}>
+                    {isSuperAdmin ? <Crown className="w-3 h-3 text-amber-300" /> : currentUser.displayName.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-slate-200 hidden sm:inline font-mono font-bold max-w-[120px] truncate">
+                    {currentUser.displayName}
+                  </span>
+                  <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${
+                    isSuperAdmin ? 'bg-red-600 text-white' : currentUser.role === 'admin' ? 'bg-sky-600 text-white' : 'bg-slate-700 text-slate-300'
+                  }`}>
+                    {currentUser.role}
+                  </span>
                 </button>
-              )}
-            </div>
+
+                {showUserDropdown && (
+                  <div className="absolute right-0 mt-2 w-64 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-3 z-50 text-xs space-y-2 animate-in fade-in duration-150">
+                    <div className="p-2 bg-slate-800/80 rounded-xl space-y-0.5 border border-slate-700">
+                      <div className="font-extrabold text-slate-100 truncate">{currentUser.displayName}</div>
+                      <div className="text-[11px] text-slate-400 font-mono truncate">{currentUser.email}</div>
+                      <div className="pt-1 flex items-center gap-1">
+                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${
+                          isSuperAdmin ? 'bg-red-900/80 text-amber-300 border border-red-600' : 'bg-sky-900 text-sky-200'
+                        }`}>
+                          {isSuperAdmin ? '👑 Super Admin' : currentUser.role}
+                        </span>
+                      </div>
+                    </div>
+
+                    {isAdminOrSuper && (
+                      <button
+                        onClick={() => {
+                          setActiveTab('admin-users');
+                          setShowUserDropdown(false);
+                        }}
+                        className="w-full text-left p-2 rounded-xl bg-red-950/60 hover:bg-red-900/80 text-red-200 border border-red-800/80 font-bold flex items-center gap-2 transition"
+                      >
+                        <Users className="w-4 h-4 text-red-400" />
+                        <span>Admin Page (Manage Users)</span>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        onLogout();
+                        setShowUserDropdown(false);
+                      }}
+                      className="w-full text-left p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-300 font-bold flex items-center gap-2 transition"
+                    >
+                      <LogOut className="w-4 h-4 text-rose-400" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -132,18 +162,15 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Logo & Brand */}
           <div 
             className="flex items-center cursor-pointer group py-1"
-            onClick={() => {
-              if (userRole === 'admin') setActiveTab('lookup');
-              else setActiveTab('search');
-            }}
+            onClick={() => setActiveTab('search')}
           >
             <AmericanAirlinesLogo size="md" variant="dark-bg" />
             <div className="ml-3 hidden lg:flex flex-col border-l border-slate-700 pl-3">
               <span className="text-xs font-black tracking-wider text-slate-200 uppercase">
-                {userRole === 'admin' ? 'Front Desk Gate Terminal' : 'Passenger Hub'}
+                {isAdminOrSuper ? 'Admin & Flight Operations' : 'Passenger Hub'}
               </span>
               <span className="text-[10px] text-sky-400 font-mono">
-                {userRole === 'admin' ? 'Ticket Verification & Pass Issue' : 'Direct Booking & Seat Map'}
+                {isAdminOrSuper ? 'Full Manifests & Clearance' : 'Ticket Search & Duration'}
               </span>
             </div>
           </div>
@@ -159,7 +186,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <Plane className="w-4 h-4 text-sky-400" />
-              Book Flights
+              Search Flights
             </button>
 
             <button
@@ -171,7 +198,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <Search className="w-4 h-4 text-red-400" />
-              {userRole === 'admin' ? '🛂 Front Desk Ticket Check' : 'Seat & Ticket Lookup'}
+              {isAdminOrSuper ? '🛂 Manifests & Gate Check' : 'Ticket Search'}
             </button>
 
             <button
@@ -202,6 +229,20 @@ export const Header: React.FC<HeaderProps> = ({
                 </span>
               )}
             </button>
+
+            {isAdminOrSuper && (
+              <button
+                onClick={() => setActiveTab('admin-users')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-extrabold transition-all duration-200 ${
+                  activeTab === 'admin-users'
+                    ? 'bg-gradient-to-r from-amber-600 to-red-600 text-white shadow-md shadow-red-900/30 ring-1 ring-amber-400/40'
+                    : 'text-amber-300 hover:text-white hover:bg-slate-800/60'
+                }`}
+              >
+                <Crown className="w-4 h-4 text-amber-400" />
+                Admin Page
+              </button>
+            )}
           </nav>
 
           {/* Quick Action Buttons */}
@@ -218,23 +259,14 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
-            {userRole === 'admin' ? (
+            {isSuperAdmin && (
               <button
-                onClick={() => {
-                  setActiveTab('lookup');
-                }}
-                className="flex items-center gap-2 bg-gradient-to-r from-[#C41230] to-[#990B22] text-white text-xs sm:text-sm font-extrabold px-4 py-2.5 rounded-xl shadow-lg shadow-red-900/40 border border-red-500/30 transition-all hover:scale-[1.02]"
-              >
-                <Building2 className="w-4 h-4" />
-                <span>Front Desk Terminal</span>
-              </button>
-            ) : (
-              <button
+                type="button"
                 onClick={onQuickBookClick}
                 className="flex items-center gap-2 bg-gradient-to-r from-[#0078D2] to-[#00519E] hover:from-[#0060A9] hover:to-[#004280] text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-sky-900/40 border border-sky-400/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
-                <PlusCircle className="w-4 h-4" />
-                <span className="hidden sm:inline">Book Flight</span>
+                <PlusCircle className="w-4 h-4 text-amber-300" />
+                <span className="hidden sm:inline">Book Flight (Super Admin)</span>
                 <span className="sm:hidden">Book</span>
               </button>
             )}
@@ -250,7 +282,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Plane className="w-4 h-4" />
-            Book
+            Search
           </button>
           <button
             onClick={() => setActiveTab('lookup')}
@@ -259,7 +291,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Search className="w-4 h-4" />
-            {userRole === 'admin' ? 'Front Desk' : 'Lookup'}
+            Lookup
           </button>
           <button
             onClick={() => setActiveTab('seat-explorer')}
@@ -268,7 +300,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Armchair className="w-4 h-4" />
-            Seat Map
+            Seats
           </button>
           <button
             onClick={() => setActiveTab('my-bookings')}
@@ -282,6 +314,17 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="absolute -top-1 right-1 w-2 h-2 rounded-full bg-red-500" />
             )}
           </button>
+          {isAdminOrSuper && (
+            <button
+              onClick={() => setActiveTab('admin-users')}
+              className={`flex flex-col items-center gap-1 py-1 px-2 rounded-lg ${
+                activeTab === 'admin-users' ? 'text-amber-400 font-bold' : 'hover:text-white'
+              }`}
+            >
+              <Crown className="w-4 h-4 text-amber-400" />
+              Admin
+            </button>
+          )}
         </div>
       </div>
     </header>
