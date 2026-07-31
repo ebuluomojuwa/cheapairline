@@ -1,6 +1,10 @@
 import { initializeApp } from 'firebase/app';
 import { 
   getAuth, 
+  initializeAuth,
+  indexedDBLocalPersistence,
+  browserLocalPersistence,
+  inMemoryPersistence,
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signInWithPopup,
@@ -50,7 +54,16 @@ const app = initializeApp({
   appId: firebaseConfigData.appId,
 });
 
-export const auth = getAuth(app);
+// Initialize Firebase Auth with persistence fallbacks to prevent IndexedDB QuotaExceeded errors
+let authInstance;
+try {
+  authInstance = initializeAuth(app, {
+    persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence]
+  });
+} catch {
+  authInstance = getAuth(app);
+}
+export const auth = authInstance;
 
 // Use specified firestoreDatabaseId if available
 export const db = firebaseConfigData.firestoreDatabaseId 

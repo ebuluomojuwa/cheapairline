@@ -90,6 +90,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (err.code === 'auth/operation-not-allowed') {
         setError('Google Sign-In is not enabled in your Firebase Console yet (auth/operation-not-allowed). Please enable Google Auth in your Firebase Authentication settings.');
         setShowBypass(true);
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError('This domain is not authorized in Firebase. To fix: Open Firebase Console -> Authentication -> Settings -> Authorized Domains, and add your Vercel app domain.');
+        setShowBypass(true);
       } else if (err.code === 'auth/popup-closed-by-user') {
         setError('Google sign-in popup was closed before completing.');
       } else {
@@ -141,6 +144,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       let msg = err.message || 'Authentication failed.';
       if (err.code === 'auth/operation-not-allowed') {
         msg = 'Email/Password sign-in is disabled in your Firebase console (auth/operation-not-allowed). To fix: Open Firebase Console -> Authentication -> Sign-in method -> Enable Email/Password or Google.';
+        setShowBypass(true);
+      } else if (err.code === 'auth/unauthorized-domain') {
+        msg = 'This Vercel domain is not authorized in Firebase. Open Firebase Console -> Authentication -> Settings -> Authorized Domains and add your Vercel URL.';
         setShowBypass(true);
       } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         msg = 'Invalid email or password. If you do not have an account, click "Create Account".';
