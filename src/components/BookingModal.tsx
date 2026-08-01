@@ -17,12 +17,16 @@ import {
   MapPin,
   Clock,
   Globe,
-  Calendar
+  Calendar,
+  Crown,
+  Tag,
+  DollarSign
 } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
 import { WORLD_AIRPORTS, searchWorldAirports, createFlightForDestination } from '../data/worldAirports';
 import { SmartAirportAutocomplete } from './SmartAirportAutocomplete';
 import { calculateFlightDuration } from '../utils/flightCalculator';
+import { AppUserProfile, SUPER_ADMIN_EMAIL } from '../lib/firebase';
 
 interface BookingModalProps {
   flight: Flight | null;
@@ -32,6 +36,7 @@ interface BookingModalProps {
   onClose: () => void;
   onBookingComplete: (newBooking: Booking) => void;
   onInspectPassenger: (booking: Booking) => void;
+  currentUser?: AppUserProfile | null;
 }
 
 export const BookingModal: React.FC<BookingModalProps> = ({
@@ -42,6 +47,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   onClose,
   onBookingComplete,
   onInspectPassenger,
+  currentUser,
 }) => {
   if (!flight) return null;
 
@@ -112,11 +118,22 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   const [issuedBooking, setIssuedBooking] = useState<Booking | null>(null);
 
+  // Super Admin Manual Price Input State (When flight is booked)
+  const isSuperAdmin = currentUser?.role === 'superadmin' || currentUser?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+  const [customPriceInput, setCustomPriceInput] = useState<string>('');
+
   const calculateTotalFare = () => {
     const base = flight.price;
     const modifier = selectedSeat ? selectedSeat.priceModifier : 0;
     const baggageFee = baggageCount > 1 ? (baggageCount - 1) * 35 : 0;
     return base + modifier + baggageFee;
+  };
+
+  const getFinalPricePaid = () => {
+    if (isSuperAdmin && customPriceInput !== '' && !isNaN(parseFloat(customPriceInput)) && parseFloat(customPriceInput) >= 0) {
+      return parseFloat(customPriceInput);
+    }
+    return calculateTotalFare();
   };
 
   const handleSeatSelect = (seat: Seat) => {
@@ -162,6 +179,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       specialAssistance: specialAssistance || undefined,
     };
 
+    const finalPrice = getFinalPricePaid();
+
     const newBooking: Booking = {
       id: `bkg-${Date.now()}`,
       ticketNumber,
@@ -184,7 +203,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       passenger: newPassenger,
       bookingDate: new Date().toISOString(),
       status: 'Confirmed',
-      pricePaid: calculateTotalFare(),
+      pricePaid: finalPrice,
       paymentMethod,
     };
 
@@ -719,11 +738,54 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     <span className="font-black text-sm text-amber-400 font-mono">{selectedSeat?.seatNumber} ({selectedSeat?.cabinClass})</span>
                   </div>
                   <div>
-                    <span className="text-slate-300 block">Total Due</span>
-                    <span className="font-black text-base text-emerald-400">${calculateTotalFare()}</span>
+                    <span className="text-slate-300 block">Final Ticket Price</span>
+                    <span className="font-black text-base text-emerald-400">${getFinalPricePaid()}</span>
                   </div>
                 </div>
               </div>
+
+              {/* Super Admin Manual Price Override Panel */}
+              {isSuperAdmin && (
+                <div className="bg-gradient-to-r from-amber-50 to-amber-100/60 dark:from-amber-950/50 dark:to-amber-900/40 border border-amber-300 dark:border-amber-700/80 rounded-2xl p-4 sm:p-5 space-y-3 shadow-md">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs font-black text-amber-900 dark:text-amber-200 uppercase tracking-wider flex items-center gap-1.5">
+                      <Crown className="w-4 h-4 text-amber-500" /> Super Admin Manual Price Input (When Flight is Booked)
+                    </span>
+                    <span className="text-[10px] bg-red-600 text-white font-black px-2.5 py-0.5 rounded-full uppercase">
+                      Super Admin Privilege
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                    As Super Admin, you can manually type a custom ticket price below before completing this booking:
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="relative flex items-center">
+                      <span className="absolute left-3.5 font-black text-base text-slate-900 dark:text-slate-100">$</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="5"
+                        value={customPriceInput}
+                        onChange={(e) => setCustomPriceInput(e.target.value)}
+                        placeholder={calculateTotalFare().toString()}
+                        className="pl-8 pr-3 py-2.5 w-44 rounded-xl border border-amber-400 dark:border-amber-600 font-black text-lg text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-amber-500 outline-none shadow-sm"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCustomPriceInput(calculateTotalFare().toString())}
+                      className="text-xs text-amber-800 dark:text-amber-300 hover:underline font-bold bg-amber-200/60 dark:bg-amber-900/60 px-3 py-2 rounded-xl border border-amber-300 dark:border-amber-700"
+                    >
+                      Reset to standard fare (${calculateTotalFare()})
+                    </button>
+                    {customPriceInput !== '' && (
+                      <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                        ✓ Manual price active: ${getFinalPricePaid()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-3">
                 <label className="text-xs font-bold text-slate-700 block">Select Payment Method</label>

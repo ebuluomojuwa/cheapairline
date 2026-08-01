@@ -9,6 +9,7 @@ interface SeatPickerProps {
   selectedSeatNumber: string | null;
   onSelectSeat: (seat: Seat) => void;
   onInspectPassenger: (booking: Booking) => void;
+  isSuperAdmin?: boolean;
 }
 
 export const SeatPicker: React.FC<SeatPickerProps> = ({
@@ -17,6 +18,7 @@ export const SeatPicker: React.FC<SeatPickerProps> = ({
   selectedSeatNumber,
   onSelectSeat,
   onInspectPassenger,
+  isSuperAdmin = false,
 }) => {
   const seats = generateFlightSeats(flight, bookings);
   const [hoveredSeat, setHoveredSeat] = useState<Seat | null>(null);
@@ -91,7 +93,11 @@ export const SeatPicker: React.FC<SeatPickerProps> = ({
         ) : (
           <div className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-2">
             <Info className="w-4 h-4 text-sky-600 dark:text-sky-400" />
-            <span>Click any empty seat to select, or a red seat to inspect passenger.</span>
+            <span>
+              {isSuperAdmin
+                ? 'Super Admin Mode: Click any empty seat to issue a ticket, or click a red seat to inspect passenger.'
+                : 'Seat Map Reference: Booking & seat reservation are strictly restricted to Super Admin.'}
+            </span>
           </div>
         )}
       </div>

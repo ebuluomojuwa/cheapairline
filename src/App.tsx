@@ -22,13 +22,22 @@ import {
   deleteBookingFromFirestore, 
   syncUserProfile, 
   AppUserProfile,
-  SUPER_ADMIN_EMAIL
+  SUPER_ADMIN_EMAIL,
+  subscribeFlightPrices,
+  updateFlightPriceInFirestore
 } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 export default function App() {
-  const [flights] = useState<Flight[]>(INITIAL_FLIGHTS);
+  const [flights, setFlights] = useState<Flight[]>(() => {
+    try {
+      const saved = localStorage.getItem('american_airlines_flights');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return INITIAL_FLIGHTS;
+  });
   const [isCalculatorOpen, setIsCalculatorOpen] = useState<boolean>(false);
+
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [isBookingRestrictedModalOpen, setIsBookingRestrictedModalOpen] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<AppUserProfile | null>(null);
@@ -86,6 +95,57 @@ export default function App() {
 
     return () => unsub();
   }, []);
+
+  // Subscribe to custom flight prices from Firestore (Super Admin overrides)
+  useEffect(() => {
+    const unsub = subscribeFlightPrices((pricesMap) => {
+      if (Object.keys(pricesMap).length > 0) {
+        setFlights((prev) =>
+          prev.map((f) => {
+            if (pricesMap[f.id] !== undefined) {
+              return { ...f, price: pricesMap[f.id] };
+            }
+            return f;
+          })
+        );
+      }
+    });
+
+    return () => unsub();
+  }, []);
+
+  const handleUpdateFlightPrice = async (flightId: string, newPrice: number) => {
+    // Update local state immediately
+    setFlights((prev) => {
+      const updated = prev.map((f) => (f.id === flightId ? { ...f, price: newPrice } : f));
+      try {
+        localStorage.setItem('american_airlines_flights', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    // Save to Firestore for real-time synchronization across all users
+    try {
+      await updateFlightPriceInFirestore(flightId, newPrice, currentUser?.email || 'Super Admin');
+    } catch (e) {
+      console.error('Error saving flight price override to Firestore:', e);
+    }
+  };
+
+  const handleUpdateBookingPrice = async (bookingId: string, newPrice: number) => {
+    // Update local state immediately
+    setBookings((prev) =>
+      prev.map((b) => (b.id === bookingId ? { ...b, pricePaid: newPrice } : b))
+    );
+
+    // Save to Firestore for real-time synchronization across all users
+    try {
+      await updateBookingInFirestore(bookingId, { pricePaid: newPrice });
+    } catch (e) {
+      console.error('Error saving booked ticket price override to Firestore:', e);
+    }
+  };
+
 
   // User Role State: 'passenger' | 'admin' | 'superadmin'
   const [userRole, setUserRole] = useState<'passenger' | 'admin' | 'superadmin'>('passenger');
@@ -182,7 +242,7 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen font-sans flex flex-col transition-colors duration-200 selection:bg-sky-500 selection:text-white ${
+    <div className={`min-h-screen w-full max-w-full overflow-x-hidden font-sans flex flex-col transition-colors duration-200 selection:bg-sky-500 selection:text-white ${
       isDarkMode ? 'bg-slate-950 text-slate-100 dark' : 'bg-slate-100 text-slate-900'
     }`}>
       {/* Navbar Header */}
@@ -205,13 +265,15 @@ export default function App() {
       />
 
       {/* Main View Area */}
-      <main className="flex-1 pb-16">
+      <main className="flex-1 pb-16 w-full max-w-full overflow-x-hidden">
         {activeTab === 'search' && (
           <FlightSearch
             flights={flights}
             onSelectFlight={(flight) => handleInitiateBooking(flight)}
             onGoToLookup={() => setActiveTab('lookup')}
             onOpenCalculator={() => setIsCalculatorOpen(true)}
+            currentUser={currentUser}
+            onGoToSuperAdminPortal={() => setActiveTab('admin-users')}
           />
         )}
 
@@ -233,6 +295,7 @@ export default function App() {
             bookings={bookings}
             onBookSeat={handleBookSpecificSeat}
             onInspectPassenger={handleInspectPassenger}
+            currentUser={currentUser}
           />
         )}
 
@@ -242,11 +305,20 @@ export default function App() {
             onViewBoardingPass={(b) => setBoardingPassBooking(b)}
             onCancelBooking={handleCancelBooking}
             onInspectPassenger={handleInspectPassenger}
+            currentUser={currentUser}
+            onUpdateBookingPrice={handleUpdateBookingPrice}
           />
         )}
 
         {activeTab === 'admin-users' && (
-          <AdminUsersPage currentUser={currentUser} />
+          <AdminUsersPage
+            currentUser={currentUser}
+            flights={flights}
+            bookings={bookings}
+            onUpdateFlightPrice={handleUpdateFlightPrice}
+            onUpdateBookingPrice={handleUpdateBookingPrice}
+            onBookFlight={(flight) => handleInitiateBooking(flight)}
+          />
         )}
       </main>
 
@@ -277,6 +349,7 @@ export default function App() {
           onClose={() => setBookingFlight(null)}
           onBookingComplete={handleBookingComplete}
           onInspectPassenger={handleInspectPassenger}
+          currentUser={currentUser}
         />
       )}
 

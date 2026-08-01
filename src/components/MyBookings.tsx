@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { Booking } from '../types';
-import { Ticket, Search, User, Armchair, Plane, Printer, XCircle, Clock, Calendar, Utensils, Luggage, Award } from 'lucide-react';
+import { Ticket, Search, User, Armchair, Plane, Printer, XCircle, Clock, Calendar, Utensils, Luggage, Award, Crown, DollarSign, Save, RefreshCw } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
+import { AppUserProfile, SUPER_ADMIN_EMAIL } from '../lib/firebase';
 
 interface MyBookingsProps {
   bookings: Booking[];
   onViewBoardingPass: (booking: Booking) => void;
   onCancelBooking: (bookingId: string) => void;
   onInspectPassenger: (booking: Booking) => void;
+  currentUser?: AppUserProfile | null;
+  onUpdateBookingPrice?: (bookingId: string, newPrice: number) => Promise<void> | void;
 }
 
 export const MyBookings: React.FC<MyBookingsProps> = ({
@@ -15,8 +18,33 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
   onViewBoardingPass,
   onCancelBooking,
   onInspectPassenger,
+  currentUser,
+  onUpdateBookingPrice,
 }) => {
   const [searchFilter, setSearchFilter] = useState('');
+  const [editingPriceMap, setEditingPriceMap] = useState<Record<string, string>>({});
+  const [updatingBookingId, setUpdatingBookingId] = useState<string | null>(null);
+
+  const isSuperAdmin = currentUser?.role === 'superadmin' || currentUser?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+
+  const handleSavePrice = async (booking: Booking) => {
+    if (!onUpdateBookingPrice) return;
+    const inputVal = editingPriceMap[booking.id] ?? (booking.pricePaid ?? 0).toString();
+    const parsed = parseFloat(inputVal);
+    if (isNaN(parsed) || parsed < 0) {
+      alert('Please enter a valid numeric ticket price ($0 or greater).');
+      return;
+    }
+
+    setUpdatingBookingId(booking.id);
+    try {
+      await onUpdateBookingPrice(booking.id, parsed);
+    } catch (e) {
+      console.error('Failed to update booking price:', e);
+    } finally {
+      setUpdatingBookingId(null);
+    }
+  };
 
   const filtered = bookings.filter((b) => {
     const q = searchFilter.toLowerCase();
@@ -138,6 +166,47 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
                     {booking.passenger.baggageCount} Bag(s)
                   </span>
                 </div>
+
+                {/* Super Admin Price Input (Post-booking override) */}
+                {isSuperAdmin && onUpdateBookingPrice && (
+                  <div className="bg-amber-50 dark:bg-amber-950/40 p-3 rounded-2xl border border-amber-200 dark:border-amber-800 space-y-2">
+                    <div className="flex items-center justify-between text-[10px] font-black uppercase text-amber-800 dark:text-amber-300 tracking-wider">
+                      <span className="flex items-center gap-1">
+                        <Crown className="w-3.5 h-3.5 text-amber-500" /> Super Admin Booked Ticket Price Input
+                      </span>
+                      <span>Paid: ${booking.pricePaid}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-bold text-xs text-slate-700 dark:text-slate-300">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={editingPriceMap[booking.id] ?? (booking.pricePaid ?? 0).toString()}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setEditingPriceMap((prev) => ({ ...prev, [booking.id]: val }));
+                          }}
+                          placeholder="Manual Price"
+                          className="w-full pl-6 pr-2 py-1.5 rounded-xl border border-amber-300 dark:border-amber-700 text-xs font-black text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 outline-none focus:ring-1 focus:ring-amber-500"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        disabled={updatingBookingId === booking.id}
+                        onClick={() => handleSavePrice(booking)}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-3 py-1.5 rounded-xl transition flex items-center gap-1 shadow-sm shrink-0"
+                      >
+                        {updatingBookingId === booking.id ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Save className="w-3.5 h-3.5" />
+                        )}
+                        <span>Save Price</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Footer Actions */}

@@ -1,15 +1,18 @@
 import React, { useState, useMemo } from 'react';
 import { Flight, AirportLocation } from '../types';
-import { Plane, MapPin, Search, ArrowRight, Sparkles, Armchair, ShieldCheck, Award, Globe, Building2, Calendar, RefreshCw, Calculator, Clock } from 'lucide-react';
+import { Plane, MapPin, Search, ArrowRight, Sparkles, Armchair, ShieldCheck, Award, Globe, Building2, Calendar, RefreshCw, Calculator, Clock, Lock, Crown } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
 import { WORLD_AIRPORTS, searchWorldAirports, createFlightForDestination } from '../data/worldAirports';
 import { SmartAirportAutocomplete } from './SmartAirportAutocomplete';
+import { AppUserProfile, SUPER_ADMIN_EMAIL } from '../lib/firebase';
 
 interface FlightSearchProps {
   flights: Flight[];
   onSelectFlight: (flight: Flight) => void;
   onGoToLookup: () => void;
   onOpenCalculator?: () => void;
+  currentUser?: AppUserProfile | null;
+  onGoToSuperAdminPortal?: () => void;
 }
 
 export const FlightSearch: React.FC<FlightSearchProps> = ({
@@ -17,7 +20,11 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
   onSelectFlight,
   onGoToLookup,
   onOpenCalculator,
+  currentUser,
+  onGoToSuperAdminPortal,
 }) => {
+  const isSuperAdmin = currentUser?.role === 'superadmin' || currentUser?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+
   const [origin, setOrigin] = useState<string>('all');
   const [originAirport, setOriginAirport] = useState<AirportLocation | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<string>('all');
@@ -192,7 +199,7 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
             </h1>
 
             <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-              Book direct flights with real-time seat map preview. Looking up an existing reservation? Enter a <strong className="text-white">Seat Number</strong> (e.g. <span className="bg-sky-500/20 text-sky-300 px-1.5 py-0.5 rounded font-mono font-bold">01A</span>, <span className="bg-sky-500/20 text-sky-300 px-1.5 py-0.5 rounded font-mono font-bold">12F</span>) or <strong className="text-white">Ticket Number</strong>.
+              Explore global flight schedules across worldwide hubs. <strong className="text-amber-300 font-extrabold">Flight booking and seat selection are restricted exclusively to the Super Admin Portal.</strong> Looking up an existing reservation? Enter a <strong className="text-white">Seat Number</strong> (e.g. <span className="bg-sky-500/20 text-sky-300 px-1.5 py-0.5 rounded font-mono font-bold">01A</span>, <span className="bg-sky-500/20 text-sky-300 px-1.5 py-0.5 rounded font-mono font-bold">12F</span>) or <strong className="text-white">Ticket Number</strong>.
             </p>
           </div>
 
@@ -581,22 +588,35 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
                 </div>
               </div>
 
-              {/* Price & Book Button */}
+              {/* Price & Booking Access Status */}
               <div className="flex flex-row md:flex-col items-center md:items-end justify-between border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800 pt-4 md:pt-0 md:pl-6 gap-3">
                 <div className="text-left md:text-right">
                   <span className="text-[10px] uppercase text-slate-400 font-extrabold block">Main Cabin & Up</span>
                   <span className="text-2xl font-black text-[#001E42] dark:text-sky-400">${flight.price}</span>
-                  <span className="text-[10px] text-slate-400 block">one way per passenger</span>
+                  <span className="text-[10px] text-slate-400 block">base fare USD</span>
                 </div>
 
-                <button
-                  onClick={() => onSelectFlight(flight)}
-                  className="bg-[#0078D2] hover:bg-[#0060A9] text-white font-bold text-xs sm:text-sm px-5 py-3 rounded-xl transition-all flex items-center gap-2 shadow-md shadow-sky-600/30 hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <Armchair className="w-4 h-4 text-sky-200" />
-                  <span>Book & Select Seat</span>
-                  <ArrowRight className="w-4 h-4 text-white" />
-                </button>
+                {isSuperAdmin ? (
+                  <button
+                    onClick={() => {
+                      if (onGoToSuperAdminPortal) {
+                        onGoToSuperAdminPortal();
+                      } else {
+                        onSelectFlight(flight);
+                      }
+                    }}
+                    className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 shadow-md hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Crown className="w-4 h-4 text-slate-950" />
+                    <span>Book via Super Admin Portal</span>
+                    <ArrowRight className="w-4 h-4 text-slate-950" />
+                  </button>
+                ) : (
+                  <div className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-extrabold text-xs px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-amber-500 shrink-0" />
+                    <span>Schedule Only (Super Admin Booking Only)</span>
+                  </div>
+                )}
               </div>
             </div>
           )))

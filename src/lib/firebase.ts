@@ -216,3 +216,40 @@ export async function updateUserRoleInFirestore(uid: string, newRole: UserRole):
   const ref = doc(db, 'users', uid);
   await updateDoc(ref, { role: newRole });
 }
+
+// --- FLIGHT PRICE MANAGEMENT (SUPER ADMIN) ---
+
+export interface FlightPriceOverride {
+  flightId: string;
+  price: number;
+  updatedBy?: string;
+  updatedAt?: string;
+}
+
+export function subscribeFlightPrices(onData: (prices: Record<string, number>) => void): () => void {
+  const colRef = collection(db, 'flight_prices');
+  return onSnapshot(colRef, (snapshot) => {
+    const pricesMap: Record<string, number> = {};
+    snapshot.docs.forEach((docSnap) => {
+      const data = docSnap.data() as FlightPriceOverride;
+      if (data.flightId && typeof data.price === 'number') {
+        pricesMap[data.flightId] = data.price;
+      }
+    });
+    onData(pricesMap);
+  }, (err) => {
+    console.error('Error fetching custom flight prices from Firestore:', err);
+    onData({});
+  });
+}
+
+export async function updateFlightPriceInFirestore(flightId: string, price: number, updatedByEmail?: string): Promise<void> {
+  const priceRef = doc(db, 'flight_prices', flightId);
+  await setDoc(priceRef, {
+    flightId,
+    price,
+    updatedBy: updatedByEmail || 'Super Admin',
+    updatedAt: new Date().toISOString(),
+  });
+}
+

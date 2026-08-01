@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { Flight, Booking, Seat } from '../types';
 import { SeatPicker } from './SeatPicker';
-import { Armchair, Plane, Ticket, Award } from 'lucide-react';
+import { Armchair, Plane, Ticket, Award, Lock, Crown } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
+import { AppUserProfile, SUPER_ADMIN_EMAIL } from '../lib/firebase';
 
 interface SeatExplorerViewProps {
   flights: Flight[];
   bookings: Booking[];
   onBookSeat: (flight: Flight, seat: Seat) => void;
   onInspectPassenger: (booking: Booking) => void;
+  currentUser?: AppUserProfile | null;
 }
 
 export const SeatExplorerView: React.FC<SeatExplorerViewProps> = ({
@@ -16,10 +18,20 @@ export const SeatExplorerView: React.FC<SeatExplorerViewProps> = ({
   bookings,
   onBookSeat,
   onInspectPassenger,
+  currentUser,
 }) => {
   const [selectedFlightId, setSelectedFlightId] = useState<string>(flights[0]?.id || '');
+  const isSuperAdmin = currentUser?.role === 'superadmin' || currentUser?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
 
   const activeFlight = flights.find((f) => f.id === selectedFlightId) || flights[0];
+
+  const handleSeatClick = (seat: Seat) => {
+    if (!isSuperAdmin) {
+      alert('Flight booking and seat assignment are restricted exclusively to the Super Admin Portal. Only Super Admin can reserve seats.');
+      return;
+    }
+    onBookSeat(activeFlight, seat);
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
@@ -37,7 +49,7 @@ export const SeatExplorerView: React.FC<SeatExplorerViewProps> = ({
             Aircraft Seat Maps & Passenger Inspector
           </h1>
           <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-            Select an American Airlines flight manifest below. Red seats are occupied—click any occupied seat to instantly reveal passenger identity, ticket number, and booking records. Click any available seat to reserve it!
+            Select an American Airlines flight manifest below to inspect seat maps and passenger manifests. Red seats are occupied—click any occupied seat to reveal passenger details. <strong className="text-amber-300 font-extrabold">Flight booking & seat reservation are strictly restricted to Super Admin.</strong>
           </p>
         </div>
 
@@ -66,8 +78,9 @@ export const SeatExplorerView: React.FC<SeatExplorerViewProps> = ({
               flight={activeFlight}
               bookings={bookings}
               selectedSeatNumber={null}
-              onSelectSeat={(seat) => onBookSeat(activeFlight, seat)}
+              onSelectSeat={(seat) => handleSeatClick(seat)}
               onInspectPassenger={onInspectPassenger}
+              isSuperAdmin={isSuperAdmin}
             />
           </div>
 
