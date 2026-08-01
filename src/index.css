@@ -1,14 +1,34 @@
 @import "tailwindcss";
 
 html, body {
-  max-width: 100vw;
-  overflow-x: hidden;
-  touch-action: manipulation;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden !important;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
 }
 
 #root {
   width: 100%;
-  max-width: 100vw;
-  overflow-x: hidden;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden !important;
+  touch-action: pan-y;
 }
+
+/* Global anti-tilting safeguard: prevent any element from exceeding 100% viewport width */
+*, ::before, ::after {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Allow horizontal scrolling inside dedicated horizontal scroll components without moving the root page */
+.overflow-x-auto {
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
+}
+
