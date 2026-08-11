@@ -17,7 +17,8 @@ import {
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
-  updateProfile 
+  updateProfile,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { auth, syncUserProfile, signInWithGoogle, SUPER_ADMIN_EMAIL, SUPER_ADMIN_EMAILS, isSuperAdminEmail, AppUserProfile } from '../lib/firebase';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
@@ -35,7 +36,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onAuthSuccess,
   onSetUser,
 }) => {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -116,9 +117,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     e.preventDefault();
     setError(null);
     setSuccessMsg(null);
-    setShowBypass(false);
 
-    if (!email || !password) {
+    const cleanEmail = email.trim();
+
+    if (mode === 'forgot') {
+      if (!cleanEmail) {
+        setError('Please enter your registered email address to receive a password reset link.');
+        return;
+      }
+      setLoading(true);
+      try {
+        await sendPasswordResetEmail(auth, cleanEmail);
+        setLoading(false);
+        setSuccessMsg(`Password reset link sent to ${cleanEmail}! Please check your Gmail/Email inbox (including spam folder).`);
+      } catch (err: any) {
+        setLoading(false);
+        console.error('Password Reset Error:', err);
+        let msg = err.message || 'Failed to send password reset email.';
+        if (err.code === 'auth/user-not-found') {
+          msg = 'No account found with this email address. Please check for typos or click "Create Account".';
+        } else if (err.code === 'auth/invalid-email') {
+          msg = 'Please enter a valid email address.';
+        } else if (err.code === 'auth/too-many-requests') {
+          msg = 'Too many requests. Please check your inbox or wait a few minutes before trying again.';
+        }
+        setError(msg);
+      }
+      return;
+    }
+
+    if (!cleanEmail || !password) {
       setError('Please enter both email and password.');
       return;
     }
@@ -132,60 +160,47 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     try {
       if (mode === 'signup') {
-        const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
-        if (displayName) {
-          await updateProfile(cred.user, { displayName });
-        }
-        await syncUserProfile(cred.user);
-        setSuccessMsg('Account created successfully!');
+        // STRICT SIGN UP
+        const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+        const nameToSet = displayName.trim() || (isSuperAdminEmail(cleanEmail) ? 'Super Admin' : cleanEmail.split('@')[0]);
+        await updateProfile(cred.user, { displayName: nameToSet });
+        const userProfile = await syncUserProfile(cred.user);
+        setSuccessMsg(`Account created successfully! Welcome, ${userProfile.displayName || 'User'}.`);
       } else {
-        try {
-          const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
-          await syncUserProfile(cred.user);
-          setSuccessMsg('Signed in successfully!');
-        } catch (signInErr: any) {
-          // If account doesn't exist yet and it's super admin or user, try creating the account
-          if (
-            signInErr.code === 'auth/user-not-found' || 
-            signInErr.code === 'auth/invalid-credential'
-          ) {
-            try {
-              const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
-              if (displayName || isSuperAdminEmail(email)) {
-                await updateProfile(cred.user, { displayName: displayName || 'Super Admin' });
-              }
-              await syncUserProfile(cred.user);
-              setSuccessMsg('Account registered and signed in successfully!');
-            } catch (signUpErr) {
-              throw signInErr; // rethrow original sign in error if registration also fails
-            }
-          } else {
-            throw signInErr;
-          }
-        }
+        // STRICT SIGN IN - DO NOT ATTEMPT AUTO REGISTRATION
+        const cred = await signInWithEmailAndPassword(auth, cleanEmail, password);
+        const userProfile = await syncUserProfile(cred.user);
+        setSuccessMsg(`Signed in successfully as ${userProfile.displayName || userProfile.email}!`);
       }
 
       setLoading(false);
       setTimeout(() => {
         if (onAuthSuccess) onAuthSuccess();
         onClose();
-      }, 500);
+      }, 600);
     } catch (err: any) {
       setLoading(false);
       console.error('Auth error:', err);
       let msg = err.message || 'Authentication failed.';
-      if (err.code === 'auth/operation-not-allowed') {
-        msg = 'Email/Password sign-in is disabled in your Firebase console (auth/operation-not-allowed). To fix: Open Firebase Console -> Authentication -> Sign-in method -> Enable Email/Password or Google.';
-        setShowBypass(true);
-      } else if (err.code === 'auth/unauthorized-domain') {
-        const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'your domain';
-        msg = `Domain "${currentDomain}" is not authorized in Firebase. Open Firebase Console (airline-project-a72e9) -> Authentication -> Settings -> Authorized Domains and add "${currentDomain}".`;
-        setShowBypass(true);
-      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        msg = 'Invalid email or password. If you do not have an account, click "Create Account" tab above.';
+
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        msg = mode === 'signin' 
+          ? 'Incorrect password or email. Please check your password and try again.'
+          : 'Invalid credentials provided.';
+      } else if (err.code === 'auth/user-not-found') {
+        msg = 'No account found with this email address. Please click the "Create Account" tab above to sign up.';
       } else if (err.code === 'auth/email-already-in-use') {
-        msg = 'This email is already registered. Please enter your password and click "Sign In".';
+        msg = 'An account with this email address already exists. Please switch to the "Sign In" tab to log in.';
+      } else if (err.code === 'auth/weak-password') {
+        msg = 'Password should be at least 6 characters long.';
+      } else if (err.code === 'auth/invalid-email') {
+        msg = 'Please enter a valid email address.';
+      } else if (err.code === 'auth/operation-not-allowed') {
+        msg = 'Email/Password sign-in is currently disabled in your Firebase console. Enable Email/Password in Firebase Console -> Authentication -> Sign-in method.';
+      } else if (err.code === 'auth/too-many-requests') {
+        msg = 'Access to this account has been temporarily disabled due to multiple failed login attempts. Please try again later or reset your password.';
       }
+
       setError(msg);
     }
   };
@@ -211,10 +226,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
 
           <h2 className="text-2xl font-black tracking-tight text-white">
-            {mode === 'signin' ? 'Sign In to American Airlines' : 'Create Flight Account'}
+            {mode === 'signin' 
+              ? 'Sign In to American Airlines' 
+              : mode === 'signup' 
+              ? 'Create Flight Account' 
+              : 'Reset Your Password'}
           </h2>
           <p className="text-xs text-slate-300 mt-1">
-            Access optional features, ticket history, or admin privileges.
+            {mode === 'forgot'
+              ? "Enter your registered email address below and we'll send a password reset link to your Gmail."
+              : 'Access optional features, ticket history, or admin privileges.'}
           </p>
         </div>
 
@@ -235,46 +256,50 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Form Body */}
         <div className="p-6 space-y-5">
-          {/* Primary Google Sign-In Button */}
-          <button
-            type="button"
-            onClick={handleGoogleAuth}
-            disabled={loading}
-            className="w-full py-3 px-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-100 font-extrabold text-sm border border-slate-300 dark:border-slate-700 rounded-xl shadow-sm flex items-center justify-center gap-3 transition transform active:scale-98"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-              />
-            </svg>
-            <span>Continue with Google</span>
-          </button>
+          {mode !== 'forgot' && (
+            <>
+              {/* Primary Google Sign-In Button */}
+              <button
+                type="button"
+                onClick={handleGoogleAuth}
+                disabled={loading}
+                className="w-full py-3 px-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-100 font-extrabold text-sm border border-slate-300 dark:border-slate-700 rounded-xl shadow-sm flex items-center justify-center gap-3 transition transform active:scale-98"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+                <span>Continue with Google</span>
+              </button>
 
-          <div className="relative flex items-center justify-center">
-            <div className="border-t border-slate-200 dark:border-slate-800 w-full"></div>
-            <span className="bg-white dark:bg-slate-900 px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
-              or Email Credentials
-            </span>
-          </div>
+              <div className="relative flex items-center justify-center">
+                <div className="border-t border-slate-200 dark:border-slate-800 w-full"></div>
+                <span className="bg-white dark:bg-slate-900 px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
+                  or Email Credentials
+                </span>
+              </div>
+            </>
+          )}
 
           {/* Tabs */}
           <div className="grid grid-cols-2 gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
             <button
               type="button"
-              onClick={() => { setMode('signin'); setError(null); }}
+              onClick={() => { setMode('signin'); setError(null); setSuccessMsg(null); }}
               className={`py-2 text-xs font-black rounded-lg transition flex items-center justify-center gap-1.5 ${
                 mode === 'signin'
                   ? 'bg-white dark:bg-slate-700 text-[#0078D2] dark:text-sky-300 shadow-xs'
@@ -285,7 +310,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => { setMode('signup'); setError(null); }}
+              onClick={() => { setMode('signup'); setError(null); setSuccessMsg(null); }}
               className={`py-2 text-xs font-black rounded-lg transition flex items-center justify-center gap-1.5 ${
                 mode === 'signup'
                   ? 'bg-white dark:bg-slate-700 text-[#C41230] dark:text-red-400 shadow-xs'
@@ -344,7 +369,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
             <div>
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">
-                Email Address
+                Registered Email Address
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -359,34 +384,53 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
             </div>
 
-            <div>
-              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 text-sm font-bold placeholder:text-slate-400 focus:border-[#0078D2] outline-none"
-                />
+            {mode !== 'forgot' && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                    Password
+                  </label>
+                  {mode === 'signin' && (
+                    <button
+                      type="button"
+                      onClick={() => { setMode('forgot'); setError(null); setSuccessMsg(null); }}
+                      className="text-xs font-extrabold text-[#0078D2] hover:text-[#0060A9] dark:text-sky-400 hover:underline transition"
+                    >
+                      Forgot Password?
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 text-sm font-bold placeholder:text-slate-400 focus:border-[#0078D2] outline-none"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             <button
               type="submit"
               disabled={loading}
               className={`w-full py-3 px-4 rounded-xl text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg transition transform active:scale-98 ${
-                mode === 'signin' 
+                mode === 'forgot'
+                  ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/30'
+                  : mode === 'signin' 
                   ? 'bg-[#0078D2] hover:bg-[#0060A9] shadow-sky-600/30' 
                   : 'bg-[#C41230] hover:bg-[#A00E26] shadow-red-600/30'
               } ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
               {loading ? (
-                <span>Processing...</span>
+                <span>Sending Request...</span>
+              ) : mode === 'forgot' ? (
+                <>
+                  <KeyRound className="w-4 h-4" /> Send Password Reset Email
+                </>
               ) : mode === 'signin' ? (
                 <>
                   <LogIn className="w-4 h-4" /> Sign In to Account
@@ -397,6 +441,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </>
               )}
             </button>
+
+            {mode === 'forgot' && (
+              <button
+                type="button"
+                onClick={() => { setMode('signin'); setError(null); setSuccessMsg(null); }}
+                className="w-full text-center text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition py-1"
+              >
+                ← Back to Sign In
+              </button>
+            )}
           </form>
 
           <p className="text-[11px] text-slate-400 text-center">
