@@ -19,7 +19,7 @@ import {
   LogIn
 } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
-import { AppUserProfile } from '../lib/firebase';
+import { AppUserProfile, isSuperAdminEmail } from '../lib/firebase';
 
 interface HeaderProps {
   userRole: 'passenger' | 'admin' | 'superadmin';
@@ -51,7 +51,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleDarkMode,
 }) => {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const isSuperAdmin = currentUser?.role === 'superadmin' || currentUser?.email?.toLowerCase() === 'ebulupaulboyld@gmail.com';
+  const isSuperAdmin = currentUser?.role === 'superadmin' || isSuperAdminEmail(currentUser?.email);
   const isAdminOrSuper = isSuperAdmin || currentUser?.role === 'admin' || userRole === 'admin' || userRole === 'superadmin';
 
   return (

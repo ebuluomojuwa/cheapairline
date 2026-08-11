@@ -3,7 +3,7 @@ import { Flight, Booking, Seat } from '../types';
 import { SeatPicker } from './SeatPicker';
 import { Armchair, Plane, Ticket, Award, Lock, Crown } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
-import { AppUserProfile, SUPER_ADMIN_EMAIL } from '../lib/firebase';
+import { AppUserProfile, SUPER_ADMIN_EMAIL, isSuperAdminEmail } from '../lib/firebase';
 
 interface SeatExplorerViewProps {
   flights: Flight[];
@@ -11,6 +11,8 @@ interface SeatExplorerViewProps {
   onBookSeat: (flight: Flight, seat: Seat) => void;
   onInspectPassenger: (booking: Booking) => void;
   currentUser?: AppUserProfile | null;
+  onUpdateFlightStatus?: (flightId: string, newStatus: Flight['status']) => Promise<void> | void;
+  onClearFlightSeats?: (flightId: string) => Promise<void> | void;
 }
 
 export const SeatExplorerView: React.FC<SeatExplorerViewProps> = ({
@@ -19,9 +21,11 @@ export const SeatExplorerView: React.FC<SeatExplorerViewProps> = ({
   onBookSeat,
   onInspectPassenger,
   currentUser,
+  onUpdateFlightStatus,
+  onClearFlightSeats,
 }) => {
   const [selectedFlightId, setSelectedFlightId] = useState<string>(flights[0]?.id || '');
-  const isSuperAdmin = currentUser?.role === 'superadmin' || currentUser?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+  const isSuperAdmin = currentUser?.role === 'superadmin' || isSuperAdminEmail(currentUser?.email);
 
   const activeFlight = flights.find((f) => f.id === selectedFlightId) || flights[0];
 
@@ -109,6 +113,66 @@ export const SeatExplorerView: React.FC<SeatExplorerViewProps> = ({
                   <span className="font-bold text-slate-900 dark:text-slate-100">Terminal {activeFlight.terminal} • Gate {activeFlight.gate}</span>
                 </div>
               </div>
+
+              {/* Super Admin Flight Status & Seat Availability Controls */}
+              {isSuperAdmin && (
+                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+                  <div className="text-xs font-black text-amber-600 dark:text-amber-400 flex items-center gap-1.5 uppercase tracking-wider">
+                    <Crown className="w-4 h-4 text-amber-500" /> Super Admin Flight Status
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">Flight Status Selector</label>
+                    <select
+                      value={activeFlight.status}
+                      onChange={async (e) => {
+                        const newStatus = e.target.value as Flight['status'];
+                        if (onUpdateFlightStatus) {
+                          await onUpdateFlightStatus(activeFlight.id, newStatus);
+                        }
+                      }}
+                      className="w-full py-2 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-black text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-[#0078D2] cursor-pointer"
+                    >
+                      <option value="On Time">Status: On Time</option>
+                      <option value="Scheduled">Status: Scheduled</option>
+                      <option value="Boarding">Status: Boarding</option>
+                      <option value="Delayed">Status: Delayed</option>
+                      <option value="Completed">Status: Flight Completed</option>
+                      <option value="Unbooked">Status: Unbooked (Make All Seats Available)</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (onUpdateFlightStatus) {
+                          await onUpdateFlightStatus(activeFlight.id, 'Unbooked');
+                        } else if (onClearFlightSeats) {
+                          await onClearFlightSeats(activeFlight.id);
+                        }
+                      }}
+                      className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition flex items-center justify-center gap-1.5 shadow-sm"
+                    >
+                      <span>Set Unbooked & Make All Seats Available</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (onUpdateFlightStatus) {
+                          await onUpdateFlightStatus(activeFlight.id, 'Completed');
+                        } else if (onClearFlightSeats) {
+                          await onClearFlightSeats(activeFlight.id);
+                        }
+                      }}
+                      className="w-full py-2 px-3 rounded-xl bg-sky-700 hover:bg-sky-800 text-white font-black text-xs transition flex items-center justify-center gap-1.5 shadow-sm"
+                    >
+                      <span>Mark Flight Completed & Release Seats</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Current Occupied Seats Manifest on this Flight */}

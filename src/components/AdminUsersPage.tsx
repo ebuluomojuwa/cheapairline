@@ -21,7 +21,7 @@ import {
   Ticket,
   Receipt
 } from 'lucide-react';
-import { AppUserProfile, subscribeUserProfiles, updateUserRoleInFirestore, SUPER_ADMIN_EMAIL, UserRole } from '../lib/firebase';
+import { AppUserProfile, subscribeUserProfiles, updateUserRoleInFirestore, SUPER_ADMIN_EMAIL, isSuperAdminEmail, UserRole } from '../lib/firebase';
 import { Flight, Booking } from '../types';
 
 interface AdminUsersPageProps {
@@ -30,6 +30,8 @@ interface AdminUsersPageProps {
   bookings: Booking[];
   onUpdateFlightPrice: (flightId: string, newPrice: number) => Promise<void> | void;
   onUpdateBookingPrice: (bookingId: string, newPrice: number) => Promise<void> | void;
+  onUpdateFlightStatus?: (flightId: string, newStatus: Flight['status']) => Promise<void> | void;
+  onClearFlightSeats?: (flightId: string) => Promise<void> | void;
   onBookFlight?: (flight: Flight) => void;
 }
 
@@ -39,6 +41,8 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
   bookings,
   onUpdateFlightPrice,
   onUpdateBookingPrice,
+  onUpdateFlightStatus,
+  onClearFlightSeats,
   onBookFlight,
 }) => {
   const [activeTab, setActiveTab] = useState<'pricing' | 'booked-pricing' | 'users'>('pricing');
@@ -58,7 +62,7 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
   const [bookingPriceInputs, setBookingPriceInputs] = useState<Record<string, string>>({});
   const [updatingBookingId, setUpdatingBookingId] = useState<string | null>(null);
 
-  const isSuperAdmin = currentUser?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() || currentUser?.role === 'superadmin';
+  const isSuperAdmin = isSuperAdminEmail(currentUser?.email) || currentUser?.role === 'superadmin';
 
   useEffect(() => {
     const unsub = subscribeUserProfiles((list) => {
@@ -88,8 +92,8 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
   }, [bookings]);
 
   const handleRoleChange = async (uid: string, targetEmail: string, newRole: UserRole) => {
-    if (targetEmail.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() && newRole !== 'superadmin') {
-      alert('The designated Super Admin account cannot be downgraded from superadmin role.');
+    if (isSuperAdminEmail(targetEmail) && newRole !== 'superadmin') {
+      alert('A designated Super Admin account cannot be downgraded from superadmin role.');
       return;
     }
 
@@ -342,9 +346,24 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                             <span className="text-xs font-extrabold px-2.5 py-0.5 rounded bg-sky-50 dark:bg-sky-950 text-[#0078D2] dark:text-sky-300 border border-sky-200 dark:border-sky-800">
                               {flight.aircraft}
                             </span>
-                            <span className="text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 px-2.5 py-0.5 rounded-full font-bold">
-                              {flight.status}
-                            </span>
+                            <select
+                              value={flight.status}
+                              onChange={async (e) => {
+                                const newStatus = e.target.value as Flight['status'];
+                                if (onUpdateFlightStatus) {
+                                  await onUpdateFlightStatus(flight.id, newStatus);
+                                  setStatusMsg(`Flight ${flight.flightNumber} status updated to "${newStatus}"!`);
+                                }
+                              }}
+                              className="text-xs font-black px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 outline-none focus:ring-2 focus:ring-[#0078D2] cursor-pointer"
+                            >
+                              <option value="On Time">On Time</option>
+                              <option value="Scheduled">Scheduled</option>
+                              <option value="Boarding">Boarding</option>
+                              <option value="Delayed">Delayed</option>
+                              <option value="Completed">Flight Completed</option>
+                              <option value="Unbooked">Unbooked (All Seats Available)</option>
+                            </select>
                           </div>
 
                           <div className="text-xs text-slate-600 dark:text-slate-300 font-bold flex items-center gap-2">
@@ -422,23 +441,57 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                       </div>
                     </div>
 
-                    {/* Footer price comparison info & Book Flight action */}
+                    {/* Footer price comparison info & Seat Reset actions */}
                     <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400 font-mono">
                       <div>
-                        <span>Active Base Price in Booking Engine: <strong className="text-emerald-600 dark:text-emerald-400 font-bold">${flight.price} USD</strong></span>
+                        <span>Active Base Price: <strong className="text-emerald-600 dark:text-emerald-400 font-bold">${flight.price} USD</strong></span>
                       </div>
 
-                      {onBookFlight && (
+                      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                         <button
                           type="button"
-                          onClick={() => onBookFlight(flight)}
-                          className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-red-600 hover:from-amber-600 hover:to-red-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md transition"
+                          onClick={async () => {
+                            if (onUpdateFlightStatus) {
+                              await onUpdateFlightStatus(flight.id, 'Unbooked');
+                            } else if (onClearFlightSeats) {
+                              await onClearFlightSeats(flight.id);
+                            }
+                            setStatusMsg(`Flight ${flight.flightNumber} status set to Unbooked. All seats released and 100% available!`);
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-1 shadow-sm transition"
                         >
-                          <Crown className="w-4 h-4 text-amber-200" />
-                          <span>Book Flight & Issue Ticket</span>
-                          <ArrowRight className="w-4 h-4" />
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Set Unbooked (Release Seats)</span>
                         </button>
-                      )}
+
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (onUpdateFlightStatus) {
+                              await onUpdateFlightStatus(flight.id, 'Completed');
+                            } else if (onClearFlightSeats) {
+                              await onClearFlightSeats(flight.id);
+                            }
+                            setStatusMsg(`Flight ${flight.flightNumber} marked as Flight Completed! All seats released and 100% available.`);
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-sky-700 hover:bg-sky-800 text-white font-black text-xs flex items-center justify-center gap-1 shadow-sm transition"
+                        >
+                          <Plane className="w-3.5 h-3.5" />
+                          <span>Mark Flight Completed</span>
+                        </button>
+
+                        {onBookFlight && (
+                          <button
+                            type="button"
+                            onClick={() => onBookFlight(flight)}
+                            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-red-600 hover:from-amber-600 hover:to-red-700 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md transition"
+                          >
+                            <Crown className="w-3.5 h-3.5 text-amber-200" />
+                            <span>Book Flight</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -668,7 +721,7 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                     </tr>
                   ) : (
                     filteredUsers.map((u) => {
-                      const isSuper = u.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+                      const isSuper = isSuperAdminEmail(u.email);
 
                       return (
                         <tr key={u.uid} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition">

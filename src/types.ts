@@ -62,7 +62,7 @@ export interface Flight {
   availableSeats: number;
   terminal: string;
   gate: string;
-  status: 'On Time' | 'Scheduled' | 'Delayed' | 'Boarding';
+  status: 'On Time' | 'Scheduled' | 'Delayed' | 'Boarding' | 'Completed' | 'Unbooked';
 }
 
 export interface Booking {

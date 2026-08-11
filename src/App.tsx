@@ -23,8 +23,12 @@ import {
   syncUserProfile, 
   AppUserProfile,
   SUPER_ADMIN_EMAIL,
+  isSuperAdminEmail,
   subscribeFlightPrices,
-  updateFlightPriceInFirestore
+  updateFlightPriceInFirestore,
+  subscribeFlightStatuses,
+  updateFlightStatusInFirestore,
+  clearFlightBookingsInFirestore
 } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 
@@ -54,7 +58,7 @@ export default function App() {
     });
   };
 
-  const isSuperAdmin = currentUser?.role === 'superadmin' || currentUser?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+  const isSuperAdmin = currentUser?.role === 'superadmin' || isSuperAdminEmail(currentUser?.email);
 
   const handleInitiateBooking = (flight?: Flight) => {
     if (!isSuperAdmin) {
@@ -114,6 +118,24 @@ export default function App() {
     return () => unsub();
   }, []);
 
+  // Subscribe to flight statuses from Firestore (Super Admin overrides)
+  useEffect(() => {
+    const unsub = subscribeFlightStatuses((statusesMap) => {
+      if (Object.keys(statusesMap).length > 0) {
+        setFlights((prev) =>
+          prev.map((f) => {
+            if (statusesMap[f.id]) {
+              return { ...f, status: statusesMap[f.id] };
+            }
+            return f;
+          })
+        );
+      }
+    });
+
+    return () => unsub();
+  }, []);
+
   const handleUpdateFlightPrice = async (flightId: string, newPrice: number) => {
     // Update local state immediately
     setFlights((prev) => {
@@ -129,6 +151,44 @@ export default function App() {
       await updateFlightPriceInFirestore(flightId, newPrice, currentUser?.email || 'Super Admin');
     } catch (e) {
       console.error('Error saving flight price override to Firestore:', e);
+    }
+  };
+
+  const handleClearFlightSeats = async (flightId: string) => {
+    const targetFlight = flights.find((f) => f.id === flightId);
+    if (!targetFlight) return;
+
+    // Clear local bookings state for this flight
+    setBookings((prev) => prev.filter((b) => b.flightId !== flightId && b.flightNumber !== targetFlight.flightNumber));
+
+    // Clear Firestore bookings for this flight
+    try {
+      await clearFlightBookingsInFirestore(flightId, targetFlight.flightNumber);
+    } catch (e) {
+      console.error('Error clearing flight bookings in Firestore:', e);
+    }
+  };
+
+  const handleUpdateFlightStatus = async (flightId: string, newStatus: Flight['status']) => {
+    // Update local state
+    setFlights((prev) => {
+      const updated = prev.map((f) => (f.id === flightId ? { ...f, status: newStatus } : f));
+      try {
+        localStorage.setItem('american_airlines_flights', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    // Save to Firestore for real-time sync
+    try {
+      await updateFlightStatusInFirestore(flightId, newStatus, currentUser?.email || 'Super Admin');
+    } catch (e) {
+      console.error('Error saving flight status override to Firestore:', e);
+    }
+
+    // If marked as 'Unbooked' or 'Completed', automatically release/clear all booked seats
+    if (newStatus === 'Unbooked' || newStatus === 'Completed') {
+      await handleClearFlightSeats(flightId);
     }
   };
 
@@ -296,6 +356,8 @@ export default function App() {
             onBookSeat={handleBookSpecificSeat}
             onInspectPassenger={handleInspectPassenger}
             currentUser={currentUser}
+            onUpdateFlightStatus={handleUpdateFlightStatus}
+            onClearFlightSeats={handleClearFlightSeats}
           />
         )}
 
@@ -317,6 +379,8 @@ export default function App() {
             bookings={bookings}
             onUpdateFlightPrice={handleUpdateFlightPrice}
             onUpdateBookingPrice={handleUpdateBookingPrice}
+            onUpdateFlightStatus={handleUpdateFlightStatus}
+            onClearFlightSeats={handleClearFlightSeats}
             onBookFlight={(flight) => handleInitiateBooking(flight)}
           />
         )}

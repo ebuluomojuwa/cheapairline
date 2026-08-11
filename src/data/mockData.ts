@@ -404,8 +404,16 @@ export const INITIAL_BOOKINGS: Booking[] = [
  */
 export function generateFlightSeats(flight: Flight, bookings: Booking[]): Seat[] {
   const seats: Seat[] = [];
+  
+  // If flight status is 'Unbooked' or 'Completed', all seats are available (unbooked)
+  const isFlightUnbookedOrCompleted = flight.status === 'Unbooked' || flight.status === 'Completed';
+
   const bookedSeatNumbers = new Set(
-    bookings.filter(b => b.flightId === flight.id && b.status !== 'Cancelled').map(b => b.seatNumber)
+    isFlightUnbookedOrCompleted
+      ? []
+      : bookings
+          .filter(b => (b.flightId === flight.id || b.flightNumber === flight.flightNumber) && b.status !== 'Cancelled')
+          .map(b => b.seatNumber)
   );
 
   // Total 25 rows, 6 seats per row: A, B, C (aisle) D, E, F

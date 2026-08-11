@@ -19,7 +19,7 @@ import {
   createUserWithEmailAndPassword, 
   updateProfile 
 } from 'firebase/auth';
-import { auth, syncUserProfile, signInWithGoogle, SUPER_ADMIN_EMAIL, AppUserProfile } from '../lib/firebase';
+import { auth, syncUserProfile, signInWithGoogle, SUPER_ADMIN_EMAIL, SUPER_ADMIN_EMAILS, isSuperAdminEmail, AppUserProfile } from '../lib/firebase';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
 
 interface AuthModalProps {
@@ -87,14 +87,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     } catch (err: any) {
       setLoading(false);
       console.error('Google Auth error:', err);
+      const isUnauthorizedDomain = err.code === 'auth/unauthorized-domain' || err?.message?.includes('unauthorized-domain');
       if (err.code === 'auth/operation-not-allowed') {
         setError('Google Sign-In is not enabled in your Firebase Console yet (auth/operation-not-allowed). To enable: Open Firebase Console -> Authentication -> Sign-in method -> Google -> Enable.');
         setShowBypass(true);
       } else if (err.code === 'auth/argument-error') {
         setError('Google popup authentication setup error (auth/argument-error). Please verify Google Auth is enabled in Firebase Console or click "Continue as Demo User" below to test.');
         setShowBypass(true);
-      } else if (err.code === 'auth/unauthorized-domain') {
-        setError('This domain is not authorized in Firebase. To fix: Open Firebase Console -> Authentication -> Settings -> Authorized Domains, and add your app domain.');
+      } else if (isUnauthorizedDomain) {
+        const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'your domain';
+        const isVercel = currentDomain.includes('vercel.app');
+        setError(`Firebase blocked Google Sign-In because "${currentDomain}" is not in Firebase's Authorized Domains list.\n\n` +
+          `• To fix: Open Firebase Console (project: airline-project-a72e9) -> Authentication -> Settings -> Authorized domains -> Add domain "${currentDomain}".\n` +
+          `• Or click "Activate Super Admin Session" below to sign in instantly as Super Admin.`);
         setShowBypass(true);
       } else if (err.code === 'auth/popup-closed-by-user') {
         setError('Google sign-in popup was closed before completing.');
@@ -134,9 +139,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         await syncUserProfile(cred.user);
         setSuccessMsg('Account created successfully!');
       } else {
-        const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
-        await syncUserProfile(cred.user);
-        setSuccessMsg('Signed in successfully!');
+        try {
+          const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+          await syncUserProfile(cred.user);
+          setSuccessMsg('Signed in successfully!');
+        } catch (signInErr: any) {
+          // If account doesn't exist yet and it's super admin or user, try creating the account
+          if (
+            signInErr.code === 'auth/user-not-found' || 
+            signInErr.code === 'auth/invalid-credential'
+          ) {
+            try {
+              const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+              if (displayName || isSuperAdminEmail(email)) {
+                await updateProfile(cred.user, { displayName: displayName || 'Super Admin' });
+              }
+              await syncUserProfile(cred.user);
+              setSuccessMsg('Account registered and signed in successfully!');
+            } catch (signUpErr) {
+              throw signInErr; // rethrow original sign in error if registration also fails
+            }
+          } else {
+            throw signInErr;
+          }
+        }
       }
 
       setLoading(false);
@@ -152,12 +178,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         msg = 'Email/Password sign-in is disabled in your Firebase console (auth/operation-not-allowed). To fix: Open Firebase Console -> Authentication -> Sign-in method -> Enable Email/Password or Google.';
         setShowBypass(true);
       } else if (err.code === 'auth/unauthorized-domain') {
-        msg = 'This Vercel domain is not authorized in Firebase. Open Firebase Console -> Authentication -> Settings -> Authorized Domains and add your Vercel URL.';
+        const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'your domain';
+        msg = `Domain "${currentDomain}" is not authorized in Firebase. Open Firebase Console (airline-project-a72e9) -> Authentication -> Settings -> Authorized Domains and add "${currentDomain}".`;
         setShowBypass(true);
       } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        msg = 'Invalid email or password. If you do not have an account, click "Create Account".';
+        msg = 'Invalid email or password. If you do not have an account, click "Create Account" tab above.';
       } else if (err.code === 'auth/email-already-in-use') {
-        msg = 'This email is already registered. Please click "Sign In".';
+        msg = 'This email is already registered. Please enter your password and click "Sign In".';
       }
       setError(msg);
     }
