@@ -4,7 +4,7 @@ import { Plane, MapPin, Search, ArrowRight, Sparkles, Armchair, ShieldCheck, Awa
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
 import { WORLD_AIRPORTS, searchWorldAirports, createFlightForDestination } from '../data/worldAirports';
 import { SmartAirportAutocomplete } from './SmartAirportAutocomplete';
-import { AppUserProfile, SUPER_ADMIN_EMAIL } from '../lib/firebase';
+import { AppUserProfile, SUPER_ADMIN_EMAIL, isSuperAdminEmail } from '../lib/firebase';
 
 interface FlightSearchProps {
   flights: Flight[];
@@ -23,7 +23,7 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
   currentUser,
   onGoToSuperAdminPortal,
 }) => {
-  const isSuperAdmin = currentUser?.role === 'superadmin' || currentUser?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+  const isSuperAdmin = currentUser?.role === 'superadmin' || isSuperAdminEmail(currentUser?.email);
 
   const [origin, setOrigin] = useState<string>('all');
   const [originAirport, setOriginAirport] = useState<AirportLocation | null>(null);

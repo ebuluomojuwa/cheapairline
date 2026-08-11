@@ -390,17 +390,11 @@ export default function App() {
       <footer 
         onClick={handleFooterClick}
         className="bg-slate-900 border-t border-slate-800 text-slate-400 text-xs py-8 px-4 text-center space-y-2 cursor-pointer select-none transition hover:bg-slate-850"
-        title="Click 5 times to open Sign In / Authentication portal"
       >
         <p className="font-semibold text-slate-300">American Airlines • Flight Reservation & Ticket System</p>
         <p className="text-slate-500">
           Search by Ticket Number (e.g. 001-9482-7710) or Passenger Name to view flight tickets & duration.
         </p>
-        {footerClicks > 0 && footerClicks < 5 && (
-          <p className="text-[11px] font-bold text-sky-400 font-mono animate-pulse pt-1">
-            🔒 Sign In Access: Click {5 - footerClicks} more time{5 - footerClicks > 1 ? 's' : ''} to open authentication
-          </p>
-        )}
       </footer>
 
       {/* Booking Flow Modal */}
@@ -414,6 +408,7 @@ export default function App() {
           onBookingComplete={handleBookingComplete}
           onInspectPassenger={handleInspectPassenger}
           currentUser={currentUser}
+          onUpdateFlightPrice={handleUpdateFlightPrice}
         />
       )}
 

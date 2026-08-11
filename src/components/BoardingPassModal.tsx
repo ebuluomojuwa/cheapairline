@@ -182,6 +182,9 @@ export const BoardingPassModal: React.FC<BoardingPassModalProps> = ({ booking, o
                     <div className="flex justify-between text-slate-600">
                       <span>Class:</span> <strong className="text-[#0078D2] font-bold">{booking.cabinClass}</strong>
                     </div>
+                    <div className="flex justify-between text-slate-600 pt-1 border-t border-slate-200">
+                      <span>Total Fare:</span> <strong className="text-emerald-600 font-black text-xs">${booking.pricePaid ?? 0}</strong>
+                    </div>
                   </div>
                 </div>
 

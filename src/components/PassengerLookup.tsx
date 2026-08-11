@@ -15,6 +15,7 @@ import {
   Utensils, 
   Luggage, 
   CreditCard, 
+  DollarSign,
   Sparkles,
   Printer,
   XCircle,
@@ -289,7 +290,7 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
                     </div>
                   </div>
 
-                  {/* Seat & Ticket Highlight Box */}
+                  {/* Seat, Ticket & Price Highlight Box */}
                   <div className="flex items-center gap-3 bg-[#00152E] p-3.5 rounded-xl border border-slate-700/80 shadow-inner">
                     <div className="text-right">
                       <div className="text-xs text-slate-400 font-medium">Assigned Seat</div>
@@ -303,6 +304,15 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
                       <div className="text-xs text-slate-400 font-medium">Ticket #</div>
                       <div className="text-sm font-mono font-bold text-sky-300">{booking.ticketNumber}</div>
                       <div className="text-[10px] text-slate-400 font-mono">PNR: {booking.confirmationCode}</div>
+                    </div>
+                    <div className="h-8 w-px bg-slate-700" />
+                    <div className="text-right">
+                      <div className="text-xs text-slate-400 font-medium">Ticket Price</div>
+                      <div className="text-lg font-black font-mono text-emerald-400 flex items-center justify-end gap-0.5">
+                        <DollarSign className="w-4 h-4 text-emerald-400" />
+                        {booking.pricePaid ?? 0}
+                      </div>
+                      <div className="text-[10px] text-emerald-300/80 font-mono">{booking.paymentMethod || 'Paid'}</div>
                     </div>
                   </div>
                 </div>
@@ -395,14 +405,18 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="grid grid-cols-3 gap-2 text-xs">
                         <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800">
-                          <span className="text-slate-400 block font-bold">Terminal & Gate</span>
-                          <span className="font-extrabold text-red-600 dark:text-red-400">Terminal {booking.terminal} • Gate {booking.gate}</span>
+                          <span className="text-slate-400 block font-bold text-[10px]">Terminal & Gate</span>
+                          <span className="font-extrabold text-red-600 dark:text-red-400 text-xs">T{booking.terminal} • Gate {booking.gate}</span>
                         </div>
                         <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800">
-                          <span className="text-slate-400 block font-bold">Cabin Class</span>
-                          <span className="font-extrabold text-[#0078D2] dark:text-sky-300">{booking.cabinClass}</span>
+                          <span className="text-slate-400 block font-bold text-[10px]">Cabin Class</span>
+                          <span className="font-extrabold text-[#0078D2] dark:text-sky-300 text-xs">{booking.cabinClass}</span>
+                        </div>
+                        <div className="bg-emerald-50 dark:bg-emerald-950/40 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                          <span className="text-emerald-700 dark:text-emerald-400 block font-bold text-[10px]">Flight Fare</span>
+                          <span className="font-black text-emerald-600 dark:text-emerald-300 text-xs">${booking.pricePaid ?? 0}</span>
                         </div>
                       </div>
 
