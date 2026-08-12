@@ -27,6 +27,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
+import { EmailTicketModal } from './EmailTicketModal';
 import confetti from 'canvas-confetti';
 
 interface PassengerLookupProps {
@@ -51,6 +52,7 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
   const [query, setQuery] = useState(initialQuery);
   const [selectedFlightFilter, setSelectedFlightFilter] = useState<string>('all');
   const [justApprovedId, setJustApprovedId] = useState<string | null>(null);
+  const [emailModalBooking, setEmailModalBooking] = useState<Booking | null>(null);
 
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
 
@@ -74,7 +76,7 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
       const passport = b.passenger.passportNumber.toLowerCase();
       const flightNum = b.flightNumber.toLowerCase();
 
-      return (
+      const matchesLead = (
         seat === q ||
         seat.endsWith(q) ||
         ticket.includes(q) ||
@@ -84,6 +86,15 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
         passport.includes(q) ||
         flightNum.includes(q)
       );
+
+      const matchesFamily = b.passengers?.some((p) =>
+        p.fullName.toLowerCase().includes(q) ||
+        p.passportNumber?.toLowerCase().includes(q) ||
+        p.seatNumber?.toLowerCase() === q ||
+        p.email?.toLowerCase().includes(q)
+      );
+
+      return matchesLead || matchesFamily;
     });
   }, [query, bookings, selectedFlightFilter, isAdmin]);
 
@@ -476,21 +487,30 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
 
                     {/* Action Buttons for Front Desk / Passenger */}
                     <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
-                      {userRole === 'admin' && !isApproved ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {userRole === 'admin' && !isApproved ? (
+                          <button
+                            onClick={() => handleGrantPass(booking)}
+                            className="w-full bg-[#C41230] hover:bg-[#A00E26] text-white font-black py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-lg shadow-red-900/30"
+                          >
+                            <CheckCircle2 className="w-4 h-4 text-white" /> Grant Boarding Pass
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => onViewBoardingPass(booking)}
+                            className="w-full bg-[#0078D2] hover:bg-[#0060A9] text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-md shadow-sky-600/20"
+                          >
+                            <Printer className="w-4 h-4 text-sky-200" /> Print / View Pass
+                          </button>
+                        )}
+
                         <button
-                          onClick={() => handleGrantPass(booking)}
-                          className="w-full bg-[#C41230] hover:bg-[#A00E26] text-white font-black py-3 px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-red-900/30"
+                          onClick={() => setEmailModalBooking(booking)}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-md shadow-emerald-600/20"
                         >
-                          <CheckCircle2 className="w-4.5 h-4.5 text-white" /> Grant Boarding Clearance Pass
+                          <Mail className="w-4 h-4 text-emerald-200" /> Send Ticket to Email
                         </button>
-                      ) : (
-                        <button
-                          onClick={() => onViewBoardingPass(booking)}
-                          className="w-full bg-[#0078D2] hover:bg-[#0060A9] text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-md shadow-sky-600/20"
-                        >
-                          <Printer className="w-4 h-4 text-sky-200" /> Print / View Official Boarding Pass
-                        </button>
-                      )}
+                      </div>
 
                       <div className="flex items-center justify-between text-[11px] text-slate-400">
                         <button
@@ -519,6 +539,12 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
           })}
         </div>
       )}
+
+      <EmailTicketModal
+        booking={emailModalBooking}
+        isOpen={!!emailModalBooking}
+        onClose={() => setEmailModalBooking(null)}
+      />
     </div>
   );
 };

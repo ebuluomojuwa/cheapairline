@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Booking } from '../types';
-import { Plane, X, Printer, Ticket, Clock, Compass, CheckCircle2 } from 'lucide-react';
+import { Plane, X, Printer, Ticket, Clock, Compass, CheckCircle2, Mail } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
 import { calculateFlightDuration } from '../utils/flightCalculator';
+import { EmailTicketModal } from './EmailTicketModal';
 
 interface BoardingPassModalProps {
   booking: Booking | null;
@@ -10,7 +11,17 @@ interface BoardingPassModalProps {
 }
 
 export const BoardingPassModal: React.FC<BoardingPassModalProps> = ({ booking, onClose }) => {
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [activePassengerIdx, setActivePassengerIdx] = useState(0);
+
   if (!booking) return null;
+
+  const passengersList = (booking.passengers && booking.passengers.length > 0)
+    ? booking.passengers
+    : [booking.passenger];
+
+  const currentPassenger = passengersList[activePassengerIdx] || booking.passenger;
+  const currentSeatNumber = currentPassenger.seatNumber || booking.seatNumber;
 
   const handlePrint = () => {
     window.print();
@@ -26,32 +37,78 @@ export const BoardingPassModal: React.FC<BoardingPassModalProps> = ({ booking, o
   const arrDate = new Date(booking.arrivalTime || flightCalc.arrivalTimeISO);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-8 max-h-[90vh] overflow-y-auto">
-        {/* Modal Close & Actions */}
-        <div className="bg-gradient-to-r from-[#001E42] via-[#002D62] to-[#00152E] px-6 py-4 flex items-center justify-between border-b border-slate-800 text-white">
-          <div className="flex items-center gap-3">
-            <AmericanAirlinesLogo size="sm" variant="dark-bg" />
-            <h3 className="font-extrabold text-lg">Official Electronic Boarding Pass</h3>
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="relative w-full max-w-3xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-8 max-h-[90vh] overflow-y-auto">
+          {/* Modal Close & Actions */}
+          <div className="bg-gradient-to-r from-[#001E42] via-[#002D62] to-[#00152E] px-6 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 text-white">
+            <div className="flex items-center gap-3">
+              <AmericanAirlinesLogo size="sm" variant="dark-bg" />
+              <h3 className="font-extrabold text-lg">Official Electronic Boarding Pass</h3>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowEmailModal(true)}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-sm"
+              >
+                <Mail className="w-4 h-4" /> Email e-Ticket
+              </button>
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="bg-[#0078D2] hover:bg-[#0060A9] text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-sm"
+              >
+                <Printer className="w-4 h-4" /> Print / Save PDF
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handlePrint}
-              className="bg-[#0078D2] hover:bg-[#0060A9] text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-sm"
-            >
-              <Printer className="w-4 h-4" /> Print / Save PDF
-            </button>
-            <button
-              onClick={onClose}
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
 
         {/* Boarding Pass Container (Printable Area) */}
         <div className="p-6 sm:p-8 bg-slate-50 dark:bg-slate-950 space-y-6">
+          {/* Family / Multi-Passenger Ticket Selector Bar */}
+          {passengersList.length > 1 && (
+            <div className="bg-slate-900 text-white p-4 rounded-2xl border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-sky-400 uppercase tracking-wider font-mono">
+                  👨‍👩‍👧‍👦 Family / Group Ticket Manifest ({passengersList.length} Passengers on PNR {booking.confirmationCode})
+                </span>
+                <span className="text-[10px] text-slate-400 font-bold bg-slate-800 px-2.5 py-1 rounded-full">
+                  Click passenger to inspect boarding pass
+                </span>
+              </div>
+              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                {passengersList.map((p, idx) => {
+                  const isActive = idx === activePassengerIdx;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setActivePassengerIdx(idx)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap border ${
+                        isActive
+                          ? 'bg-[#0078D2] text-white border-sky-400 shadow-md ring-2 ring-sky-300/40'
+                          : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'
+                      }`}
+                    >
+                      <span>{idx + 1}. {p.fullName || 'Passenger'}</span>
+                      <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-950 text-amber-300">
+                        Seat {p.seatNumber || booking.seatNumber}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="bg-white dark:bg-slate-900 rounded-3xl border-2 border-slate-900 dark:border-slate-700 shadow-xl overflow-hidden">
             {/* Airline Header Bar */}
             <div className="bg-gradient-to-r from-[#001E42] to-[#002D62] p-6 text-white flex flex-wrap items-center justify-between gap-4 border-b-2 border-slate-800">
@@ -80,16 +137,23 @@ export const BoardingPassModal: React.FC<BoardingPassModalProps> = ({ booking, o
                 {/* Passenger Name & Seat Box */}
                 <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
                   <div>
-                    <span className="text-xs text-slate-400 font-bold uppercase block">Passenger Name</span>
-                    <span className="text-xl font-black text-slate-900 dark:text-slate-100">{booking.passenger.fullName}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400 font-bold uppercase block">Passenger Name</span>
+                      {currentPassenger.passengerType && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border border-sky-300">
+                          {currentPassenger.passengerType}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xl font-black text-slate-900 dark:text-slate-100">{currentPassenger.fullName || booking.passenger.fullName}</span>
                     <span className="text-xs text-slate-500 dark:text-slate-400 block font-mono mt-0.5">
-                      Passport: {booking.passenger.passportNumber}
+                      Passport: {currentPassenger.passportNumber || booking.passenger.passportNumber}
                     </span>
                   </div>
 
                   <div className="text-center bg-[#001E42] text-amber-400 px-4 py-2.5 rounded-xl border border-slate-800 shadow-md">
                     <span className="text-[10px] uppercase text-slate-400 font-bold block">SEAT</span>
-                    <span className="text-2xl font-black font-mono">{booking.seatNumber}</span>
+                    <span className="text-2xl font-black font-mono">{currentSeatNumber}</span>
                   </div>
                 </div>
 
@@ -174,10 +238,10 @@ export const BoardingPassModal: React.FC<BoardingPassModalProps> = ({ booking, o
 
                   <div className="space-y-1 bg-slate-50 p-3 rounded-xl border border-slate-200 text-[11px]">
                     <div className="flex justify-between text-slate-600">
-                      <span>Meal:</span> <strong className="text-slate-900">{booking.passenger.mealPreference}</strong>
+                      <span>Meal:</span> <strong className="text-slate-900">{currentPassenger.mealPreference || booking.passenger.mealPreference}</strong>
                     </div>
                     <div className="flex justify-between text-slate-600">
-                      <span>Baggage:</span> <strong className="text-slate-900">{booking.passenger.baggageCount} Bag(s)</strong>
+                      <span>Baggage:</span> <strong className="text-slate-900">{currentPassenger.baggageCount ?? booking.passenger.baggageCount} Bag(s)</strong>
                     </div>
                     <div className="flex justify-between text-slate-600">
                       <span>Class:</span> <strong className="text-[#0078D2] font-bold">{booking.cabinClass}</strong>
@@ -210,5 +274,12 @@ export const BoardingPassModal: React.FC<BoardingPassModalProps> = ({ booking, o
         </div>
       </div>
     </div>
+
+      <EmailTicketModal
+        booking={booking}
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+      />
+    </>
   );
 };

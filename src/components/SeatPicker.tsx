@@ -7,6 +7,7 @@ interface SeatPickerProps {
   flight: Flight;
   bookings: Booking[];
   selectedSeatNumber: string | null;
+  selectedSeatNumbers?: string[];
   onSelectSeat: (seat: Seat) => void;
   onInspectPassenger: (booking: Booking) => void;
   isSuperAdmin?: boolean;
@@ -16,12 +17,17 @@ export const SeatPicker: React.FC<SeatPickerProps> = ({
   flight,
   bookings,
   selectedSeatNumber,
+  selectedSeatNumbers = [],
   onSelectSeat,
   onInspectPassenger,
   isSuperAdmin = false,
 }) => {
   const seats = generateFlightSeats(flight, bookings);
   const [hoveredSeat, setHoveredSeat] = useState<Seat | null>(null);
+
+  const activeSelectedSet = new Set<string>();
+  if (selectedSeatNumber) activeSelectedSet.add(selectedSeatNumber);
+  if (selectedSeatNumbers) selectedSeatNumbers.forEach((s) => activeSelectedSet.add(s));
 
   // Group seats by row
   const rowsMap = new Map<number, Seat[]>();
@@ -42,7 +48,7 @@ export const SeatPicker: React.FC<SeatPickerProps> = ({
   };
 
   const getSeatColor = (seat: Seat) => {
-    if (selectedSeatNumber === seat.seatNumber) {
+    if (activeSelectedSet.has(seat.seatNumber)) {
       return 'bg-amber-400 border-amber-500 text-slate-950 font-bold shadow-md shadow-amber-400/40 ring-2 ring-amber-300 scale-105';
     }
     if (seat.isBooked) {
@@ -77,16 +83,21 @@ export const SeatPicker: React.FC<SeatPickerProps> = ({
         </div>
 
         {/* Selected Seat Banner */}
-        {selectedSeatNumber ? (
+        {activeSelectedSet.size > 0 ? (
           <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/60 dark:to-orange-950/60 border border-amber-200 dark:border-amber-800/80 p-3 rounded-2xl flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 font-black font-mono flex items-center justify-center text-lg shadow-sm">
-              {selectedSeatNumber}
+            <div className="flex items-center gap-1.5 max-w-xs overflow-x-auto">
+              {Array.from(activeSelectedSet).map((seatNum) => (
+                <span key={seatNum} className="px-2.5 py-1 rounded-xl bg-amber-400 text-slate-950 font-black font-mono text-sm shadow-xs">
+                  {seatNum}
+                </span>
+              ))}
             </div>
             <div>
-              <div className="text-xs text-amber-900 dark:text-amber-200 font-bold">Selected Seat</div>
-              <div className="text-[11px] text-amber-700 dark:text-amber-400">
-                Fare Modifier: +$
-                {seats.find((s) => s.seatNumber === selectedSeatNumber)?.priceModifier || 0}
+              <div className="text-xs text-amber-900 dark:text-amber-200 font-bold">
+                {activeSelectedSet.size > 1 ? `${activeSelectedSet.size} Seats Selected` : 'Selected Seat'}
+              </div>
+              <div className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
+                Ready for Passenger Assignment
               </div>
             </div>
           </div>

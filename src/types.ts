@@ -11,6 +11,8 @@ export interface PassengerInfo {
   mealPreference: string;
   baggageCount: number;
   specialAssistance?: string;
+  seatNumber?: string;
+  passengerType?: 'Adult' | 'Child' | 'Infant';
 }
 
 export interface Seat {
@@ -93,10 +95,18 @@ export interface Booking {
   seatNumber: string;
   cabinClass: CabinClass;
   passenger: PassengerInfo;
+  passengers?: PassengerInfo[];
+  seats?: string[];
+  passengerCount?: number;
+  groupName?: string;
+  isFamilyBooking?: boolean;
   bookingDate: string;
   status: 'Confirmed' | 'Checked In' | 'Boarded' | 'Cancelled';
   pricePaid: number;
   paymentMethod: string;
+  autoEmailSent?: boolean;
+  autoEmailSentTo?: string;
+  autoEmailSentAt?: string;
   gatePassApproved?: boolean;
   gatePassApprovedAt?: string;
   verifiedByAgent?: string;

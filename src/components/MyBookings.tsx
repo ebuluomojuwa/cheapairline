@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Booking } from '../types';
-import { Ticket, Search, User, Armchair, Plane, Printer, XCircle, Clock, Calendar, Utensils, Luggage, Award, Crown, DollarSign, Save, RefreshCw } from 'lucide-react';
+import { Ticket, Search, User, Armchair, Plane, Printer, XCircle, Clock, Calendar, Utensils, Luggage, Award, Crown, DollarSign, Save, RefreshCw, Mail } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
 import { AppUserProfile, SUPER_ADMIN_EMAIL } from '../lib/firebase';
+import { EmailTicketModal } from './EmailTicketModal';
 
 interface MyBookingsProps {
   bookings: Booking[];
@@ -24,6 +25,7 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
   const [searchFilter, setSearchFilter] = useState('');
   const [editingPriceMap, setEditingPriceMap] = useState<Record<string, string>>({});
   const [updatingBookingId, setUpdatingBookingId] = useState<string | null>(null);
+  const [emailModalBooking, setEmailModalBooking] = useState<Booking | null>(null);
 
   const isSuperAdmin = currentUser?.role === 'superadmin' || currentUser?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
 
@@ -49,12 +51,19 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
   const filtered = bookings.filter((b) => {
     const q = searchFilter.toLowerCase();
     if (!q) return true;
-    return (
+    const matchesLead = (
       b.ticketNumber.toLowerCase().includes(q) ||
+      b.confirmationCode.toLowerCase().includes(q) ||
       b.seatNumber.toLowerCase().includes(q) ||
       b.passenger.fullName.toLowerCase().includes(q) ||
       b.flightNumber.toLowerCase().includes(q)
     );
+    const matchesPassengers = b.passengers?.some((p) =>
+      p.fullName.toLowerCase().includes(q) ||
+      p.passportNumber?.toLowerCase().includes(q) ||
+      p.seatNumber?.toLowerCase().includes(q)
+    );
+    return matchesLead || matchesPassengers;
   });
 
   return (
@@ -128,13 +137,30 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
               <div className="p-5 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] uppercase text-slate-400 font-bold block">Passenger</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] uppercase text-slate-400 font-bold block">Lead Passenger</span>
+                      {booking.passengers && booking.passengers.length > 1 && (
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300">
+                          👨‍👩‍👧‍👦 {booking.passengers.length} Family Ticket
+                        </span>
+                      )}
+                    </div>
                     <button
                       onClick={() => onInspectPassenger(booking)}
                       className="text-base font-black text-slate-900 dark:text-slate-100 hover:text-[#0078D2] dark:hover:text-sky-300 transition text-left"
                     >
                       {booking.passenger.fullName}
                     </button>
+                    {booking.passengers && booking.passengers.length > 1 && (
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-1">
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">Party:</span>
+                        {booking.passengers.map((p, idx) => (
+                          <span key={idx} className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                            {p.fullName} ({p.seatNumber || 'Seat'})
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-extrabold border border-emerald-200 dark:border-emerald-800">
@@ -210,7 +236,7 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
               </div>
 
               {/* Footer Actions */}
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => onViewBoardingPass(booking)}
                   className="flex-1 bg-[#0078D2] hover:bg-[#0060A9] text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-sky-600/20"
@@ -219,8 +245,17 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
                 </button>
 
                 <button
+                  onClick={() => setEmailModalBooking(booking)}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center gap-1.5 transition shadow-md shadow-emerald-600/20"
+                  title="Send e-Ticket to Email"
+                >
+                  <Mail className="w-3.5 h-3.5 text-white" />
+                  <span>Email Ticket</span>
+                </button>
+
+                <button
                   onClick={() => onInspectPassenger(booking)}
-                  className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-bold py-2.5 px-3.5 rounded-xl text-xs transition"
+                  className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-bold py-2.5 px-3 rounded-xl text-xs transition"
                 >
                   Inspect
                 </button>
@@ -242,6 +277,12 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
           ))}
         </div>
       )}
+
+      <EmailTicketModal
+        booking={emailModalBooking}
+        isOpen={!!emailModalBooking}
+        onClose={() => setEmailModalBooking(null)}
+      />
     </div>
   );
 };
