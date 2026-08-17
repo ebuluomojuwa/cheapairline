@@ -455,6 +455,11 @@ Total Paid: $${bkg.pricePaid}
       autoEmailSent: autoSendEmail,
       autoEmailSentTo: targetEmail,
       autoEmailSentAt: new Date().toISOString(),
+      isSuperAdminBooking: isSuperAdminEmail(currentUser?.email) || currentUser?.role === 'superadmin',
+      bookedByRole: (isSuperAdminEmail(currentUser?.email) || currentUser?.role === 'superadmin') ? 'superadmin' : (currentUser?.role || 'user'),
+      bookedByEmail: currentUser?.email || (isSuperAdminEmail(currentUser?.email) ? 'ebulupaulboyld@gmail.com' : ''),
+      bookedByUid: currentUser?.uid || '',
+      bookedByName: currentUser?.displayName || '',
     };
 
     // Auto-dispatch e-Ticket email if enabled

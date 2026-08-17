@@ -197,7 +197,11 @@ export const INITIAL_BOOKINGS: Booking[] = [
     bookingDate: '2026-07-15T10:14:00',
     status: 'Confirmed',
     pricePaid: 2400,
-    paymentMethod: 'Citi / AAdvantage Executive World Elite (*4019)'
+    paymentMethod: 'Citi / AAdvantage Executive World Elite (*4019)',
+    isSuperAdminBooking: true,
+    bookedByRole: 'superadmin',
+    bookedByEmail: 'ebulupaulboyld@gmail.com',
+    bookedByName: 'Paul (Super Admin)',
   },
   {
     id: 'bkg-1002',
@@ -230,7 +234,11 @@ export const INITIAL_BOOKINGS: Booking[] = [
     bookingDate: '2026-07-16T14:22:00',
     status: 'Checked In',
     pricePaid: 2400,
-    paymentMethod: 'AAdvantage Aviator Red MasterCard (*8812)'
+    paymentMethod: 'AAdvantage Aviator Red MasterCard (*8812)',
+    isSuperAdminBooking: true,
+    bookedByRole: 'superadmin',
+    bookedByEmail: 'ebulupaulboyld@gmail.com',
+    bookedByName: 'Paul (Super Admin)',
   },
   {
     id: 'bkg-1003',
@@ -263,7 +271,11 @@ export const INITIAL_BOOKINGS: Booking[] = [
     bookingDate: '2026-07-18T09:05:00',
     status: 'Confirmed',
     pricePaid: 1850,
-    paymentMethod: 'Citi / AAdvantage Platinum (*3309)'
+    paymentMethod: 'Citi / AAdvantage Platinum (*3309)',
+    isSuperAdminBooking: true,
+    bookedByRole: 'superadmin',
+    bookedByEmail: 'ebulupaulboyld@gmail.com',
+    bookedByName: 'Paul (Super Admin)',
   },
   {
     id: 'bkg-1004',

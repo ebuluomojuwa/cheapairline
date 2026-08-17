@@ -613,17 +613,11 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
 
                   {isSuperAdmin ? (
                     <button
-                      onClick={() => {
-                        if (onGoToSuperAdminPortal) {
-                          onGoToSuperAdminPortal();
-                        } else {
-                          onSelectFlight(flight);
-                        }
-                      }}
+                      onClick={() => onSelectFlight(flight)}
                       className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs px-3.5 sm:px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md hover:scale-[1.02] active:scale-[0.98] min-h-[44px]"
                     >
                       <Crown className="w-4 h-4 text-slate-950 shrink-0" />
-                      <span>Book Flight</span>
+                      <span>Book Flight (Admin)</span>
                       <ArrowRight className="w-4 h-4 text-slate-950 shrink-0" />
                     </button>
                   ) : (

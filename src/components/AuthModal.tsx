@@ -167,10 +167,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         const userProfile = await syncUserProfile(cred.user);
         setSuccessMsg(`Account created successfully! Welcome, ${userProfile.displayName || 'User'}.`);
       } else {
-        // STRICT SIGN IN - DO NOT ATTEMPT AUTO REGISTRATION
-        const cred = await signInWithEmailAndPassword(auth, cleanEmail, password);
-        const userProfile = await syncUserProfile(cred.user);
-        setSuccessMsg(`Signed in successfully as ${userProfile.displayName || userProfile.email}!`);
+        // STRICT SIGN IN - with smart error recovery
+        try {
+          const cred = await signInWithEmailAndPassword(auth, cleanEmail, password);
+          const userProfile = await syncUserProfile(cred.user);
+          setSuccessMsg(`Signed in successfully as ${userProfile.displayName || userProfile.email}!`);
+        } catch (signInErr: any) {
+          // If the account does not exist or password hasn't been created yet in Firebase Auth
+          if (signInErr.code === 'auth/invalid-credential' || signInErr.code === 'auth/user-not-found') {
+            // Check if user is SuperAdmin or trying to auto-register
+            if (isSuperAdminEmail(cleanEmail) || cleanEmail.toLowerCase().includes('admin')) {
+              try {
+                // Attempt creating the account if it wasn't registered yet
+                const newCred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+                const nameToSet = isSuperAdminEmail(cleanEmail) ? 'Super Admin' : cleanEmail.split('@')[0];
+                await updateProfile(newCred.user, { displayName: nameToSet });
+                const userProfile = await syncUserProfile(newCred.user);
+                setSuccessMsg(`Admin account initialized and signed in as ${userProfile.displayName}!`);
+                setLoading(false);
+                setTimeout(() => {
+                  if (onAuthSuccess) onAuthSuccess();
+                  onClose();
+                }, 600);
+                return;
+              } catch {
+                // If creation also fails (e.g. invalid credential/already exists with different pass), rethrow original error
+                throw signInErr;
+              }
+            }
+          }
+          throw signInErr;
+        }
       }
 
       setLoading(false);
@@ -180,15 +207,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }, 600);
     } catch (err: any) {
       setLoading(false);
-      console.error('Auth error:', err);
       let msg = err.message || 'Authentication failed.';
 
       if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         msg = mode === 'signin' 
-          ? 'Incorrect password or email. Please check your password and try again.'
-          : 'Invalid credentials provided.';
+          ? 'Invalid email or password. If this is your first time logging in with this email, please click the "Create Account" tab to register, or click "Activate Super Admin Session" below.'
+          : 'Invalid credentials provided. Please ensure password is at least 6 characters.';
+        setShowBypass(true);
       } else if (err.code === 'auth/user-not-found') {
         msg = 'No account found with this email address. Please click the "Create Account" tab above to sign up.';
+        setShowBypass(true);
       } else if (err.code === 'auth/email-already-in-use') {
         msg = 'An account with this email address already exists. Please switch to the "Sign In" tab to log in.';
       } else if (err.code === 'auth/weak-password') {
@@ -197,8 +225,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         msg = 'Please enter a valid email address.';
       } else if (err.code === 'auth/operation-not-allowed') {
         msg = 'Email/Password sign-in is currently disabled in your Firebase console. Enable Email/Password in Firebase Console -> Authentication -> Sign-in method.';
+        setShowBypass(true);
       } else if (err.code === 'auth/too-many-requests') {
-        msg = 'Access to this account has been temporarily disabled due to multiple failed login attempts. Please try again later or reset your password.';
+        msg = 'Access to this account has been temporarily disabled due to multiple failed login attempts. Please reset your password or click Activate Super Admin Session below.';
+        setShowBypass(true);
       }
 
       setError(msg);

@@ -31,6 +31,7 @@ interface HeaderProps {
   activeTab: 'search' | 'tracker' | 'lookup' | 'seat-explorer' | 'my-bookings' | 'admin-users';
   setActiveTab: (tab: 'search' | 'tracker' | 'lookup' | 'seat-explorer' | 'my-bookings' | 'admin-users') => void;
   bookingCount: number;
+  superAdminBookingCount?: number;
   onQuickBookClick: () => void;
   onOpenCalculator?: () => void;
   isDarkMode: boolean;
@@ -46,6 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
   bookingCount,
+  superAdminBookingCount = 0,
   onQuickBookClick,
   onOpenCalculator,
   isDarkMode,
@@ -134,10 +136,17 @@ export const Header: React.FC<HeaderProps> = ({
                           setActiveTab('admin-users');
                           setShowUserDropdown(false);
                         }}
-                        className="w-full text-left p-2 rounded-xl bg-red-950/60 hover:bg-red-900/80 text-red-200 border border-red-800/80 font-bold flex items-center gap-2 transition min-h-[40px]"
+                        className="w-full text-left p-2 rounded-xl bg-gradient-to-r from-amber-950/80 to-red-950/80 hover:from-amber-900 hover:to-red-900 text-amber-200 border border-amber-500/40 font-bold flex items-center justify-between gap-2 transition min-h-[40px]"
                       >
-                        <Users className="w-4 h-4 text-red-400 shrink-0" />
-                        <span>Admin Page (Manage Users)</span>
+                        <div className="flex items-center gap-2">
+                          <Crown className="w-4 h-4 text-amber-400 shrink-0" />
+                          <span>Super Admin Operations</span>
+                        </div>
+                        {isSuperAdmin && superAdminBookingCount > 0 && (
+                          <span className="bg-amber-400 text-slate-950 text-[10px] px-2 py-0.5 rounded-full font-black">
+                            {superAdminBookingCount} flights
+                          </span>
+                        )}
                       </button>
                     )}
 
@@ -264,7 +273,12 @@ export const Header: React.FC<HeaderProps> = ({
                 }`}
               >
                 <Crown className="w-4 h-4 text-amber-400" />
-                Admin Page
+                <span>Super Admin</span>
+                {isSuperAdmin && superAdminBookingCount > 0 && (
+                  <span className="bg-amber-400 text-slate-950 text-xs px-2 py-0.5 rounded-full font-black shadow-sm">
+                    {superAdminBookingCount}
+                  </span>
+                )}
               </button>
             )}
           </nav>
@@ -360,14 +374,19 @@ export const Header: React.FC<HeaderProps> = ({
           {isAdminOrSuper && (
             <button
               onClick={() => setActiveTab('admin-users')}
-              className={`flex flex-col items-center justify-center gap-1 py-1.5 px-1.5 rounded-xl transition min-h-[44px] flex-1 ${
+              className={`flex flex-col items-center justify-center gap-1 py-1.5 px-1.5 rounded-xl transition min-h-[44px] flex-1 relative ${
                 activeTab === 'admin-users' 
-                  ? 'bg-amber-500/20 text-amber-400 border border-amber-400/30' 
-                  : 'hover:text-white hover:bg-slate-800/40 text-amber-300/70'
+                  ? 'bg-amber-500/20 text-amber-400 border border-amber-400/30 font-black' 
+                  : 'hover:text-white hover:bg-slate-800/40 text-amber-300/80'
               }`}
             >
-              <Crown className="w-4 h-4" />
-              <span className="leading-none text-[10px]">Admin</span>
+              <Crown className="w-4 h-4 text-amber-400" />
+              <span className="leading-none text-[10px]">Super Admin</span>
+              {isSuperAdmin && superAdminBookingCount > 0 && (
+                <span className="absolute top-1 right-1 bg-amber-400 text-slate-950 text-[9px] w-4 h-4 rounded-full font-black flex items-center justify-center shadow-xs">
+                  {superAdminBookingCount}
+                </span>
+              )}
             </button>
           )}
         </div>

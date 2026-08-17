@@ -4,6 +4,55 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>American Airlines - Flight & Seat Reservation Hub</title>
+    <script>
+      (function() {
+        // Intercept and swallow benign Vite HMR websocket disconnection errors
+        var isWsError = function(err) {
+          if (!err) return false;
+          var msg = (typeof err === 'string' ? err : (err.message || err.reason || '')).toString();
+          return msg.indexOf('WebSocket') !== -1 || 
+                 msg.indexOf('websocket') !== -1 || 
+                 msg.indexOf('closed without opened') !== -1 || 
+                 msg.indexOf('[vite]') !== -1;
+        };
+
+        window.addEventListener('unhandledrejection', function(event) {
+          if (isWsError(event.reason)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+        }, true);
+
+        window.addEventListener('error', function(event) {
+          if (isWsError(event.message) || isWsError(event.error)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+        }, true);
+
+        var origError = console.error;
+        console.error = function() {
+          var args = Array.prototype.slice.call(arguments);
+          var hasWs = args.some(function(arg) {
+            return isWsError(arg);
+          });
+          if (!hasWs) {
+            origError.apply(console, arguments);
+          }
+        };
+
+        var origWarn = console.warn;
+        console.warn = function() {
+          var args = Array.prototype.slice.call(arguments);
+          var hasWs = args.some(function(arg) {
+            return isWsError(arg);
+          });
+          if (!hasWs) {
+            origWarn.apply(console, arguments);
+          }
+        };
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

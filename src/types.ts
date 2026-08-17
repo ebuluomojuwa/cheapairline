@@ -110,6 +110,11 @@ export interface Booking {
   gatePassApproved?: boolean;
   gatePassApprovedAt?: string;
   verifiedByAgent?: string;
+  isSuperAdminBooking?: boolean;
+  bookedByRole?: 'superadmin' | 'admin' | 'user';
+  bookedByEmail?: string;
+  bookedByUid?: string;
+  bookedByName?: string;
 }
 
 export type UserRole = 'superadmin' | 'admin' | 'user';

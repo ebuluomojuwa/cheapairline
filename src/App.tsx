@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Flight, Booking, Seat, AppUser, UserRole } from './types';
 import { INITIAL_FLIGHTS } from './data/mockData';
 import { Header } from './components/Header';
@@ -91,6 +91,15 @@ export default function App() {
 
   // Real-time Firestore Bookings State
   const [bookings, setBookings] = useState<Booking[]>([]);
+
+  const superAdminBookingsCount = useMemo(() => {
+    return bookings.filter((b) => 
+      b.isSuperAdminBooking === true || 
+      b.bookedByRole === 'superadmin' || 
+      isSuperAdminEmail(b.bookedByEmail) || 
+      isSuperAdminEmail(b.passenger?.email)
+    ).length;
+  }, [bookings]);
 
   useEffect(() => {
     // Subscribe to Firestore bookings
@@ -337,6 +346,7 @@ export default function App() {
           if (tab !== 'lookup') setLookupQuery('');
         }}
         bookingCount={bookings.length}
+        superAdminBookingCount={superAdminBookingsCount}
         onQuickBookClick={() => handleInitiateBooking(flights[0])}
         onOpenCalculator={() => setIsCalculatorOpen(true)}
         isDarkMode={isDarkMode}
@@ -423,6 +433,10 @@ export default function App() {
             onUpdateFlightStatus={handleUpdateFlightStatus}
             onClearFlightSeats={handleClearFlightSeats}
             onBookFlight={(flight) => handleInitiateBooking(flight)}
+            onViewBoardingPass={(b) => setBoardingPassBooking(b)}
+            onCancelBooking={handleCancelBooking}
+            onTrackFlight={(flight) => handleTrackFlight(flight)}
+            onInspectPassenger={handleInspectPassenger}
           />
         )}
       </main>
