@@ -6,10 +6,48 @@
     <title>American Airlines - Flight & Seat Reservation Hub</title>
     <script>
       (function() {
-        // Intercept and swallow benign Vite HMR websocket disconnection errors
+        // 1. Intercept and swallow WebSocket construction if targeted to Vite dev server HMR
+        if (typeof window !== 'undefined' && window.WebSocket) {
+          var RealWebSocket = window.WebSocket;
+          window.WebSocket = function(url, protocols) {
+            if (typeof url === 'string' && (url.indexOf('vite') !== -1 || url.indexOf('3000') !== -1 || url.indexOf('ws:') === 0 || url.indexOf('wss:') === 0)) {
+              // Return a benign dummy WebSocket object that never throws unhandled errors
+              var dummy = {
+                url: url,
+                readyState: 3, // CLOSED
+                bufferedAmount: 0,
+                extensions: '',
+                protocol: '',
+                binaryType: 'blob',
+                CONNECTING: 0,
+                OPEN: 1,
+                CLOSING: 2,
+                CLOSED: 3,
+                send: function() {},
+                close: function() {},
+                addEventListener: function() {},
+                removeEventListener: function() {},
+                dispatchEvent: function() { return false; },
+                onopen: null,
+                onclose: null,
+                onerror: null,
+                onmessage: null
+              };
+              return dummy;
+            }
+            return new RealWebSocket(url, protocols);
+          };
+          window.WebSocket.prototype = RealWebSocket.prototype;
+          window.WebSocket.CONNECTING = 0;
+          window.WebSocket.OPEN = 1;
+          window.WebSocket.CLOSING = 2;
+          window.WebSocket.CLOSED = 3;
+        }
+
+        // 2. Global rejection & error event swallowers for any websocket error
         var isWsError = function(err) {
           if (!err) return false;
-          var msg = (typeof err === 'string' ? err : (err.message || err.reason || '')).toString();
+          var msg = (typeof err === 'string' ? err : (err.message || err.reason || (err.error && err.error.message) || '')).toString();
           return msg.indexOf('WebSocket') !== -1 || 
                  msg.indexOf('websocket') !== -1 || 
                  msg.indexOf('closed without opened') !== -1 || 
@@ -59,4 +97,3 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

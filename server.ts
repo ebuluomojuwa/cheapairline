@@ -302,10 +302,14 @@ Thank you for flying with American Airlines!`,
 });
 
 async function startServer() {
-  // Vite middleware for development mode
+  // Vite middleware for development mode with HMR explicitly disabled
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { 
+        middlewareMode: true,
+        hmr: false,
+        ws: false,
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);
