@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Flight, AirportLocation } from '../types';
-import { Plane, MapPin, Search, ArrowRight, Sparkles, Armchair, ShieldCheck, Award, Globe, Building2, Calendar, RefreshCw, Calculator, Clock, Lock, Crown } from 'lucide-react';
+import { Plane, MapPin, Search, ArrowRight, Sparkles, Armchair, ShieldCheck, Award, Globe, Building2, Calendar, RefreshCw, Calculator, Clock, Lock, Crown, Radio } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
 import { WORLD_AIRPORTS, searchWorldAirports, createFlightForDestination } from '../data/worldAirports';
 import { SmartAirportAutocomplete } from './SmartAirportAutocomplete';
@@ -11,6 +11,7 @@ interface FlightSearchProps {
   onSelectFlight: (flight: Flight) => void;
   onGoToLookup: () => void;
   onOpenCalculator?: () => void;
+  onTrackFlight?: (flight: Flight) => void;
   currentUser?: AppUserProfile | null;
   onGoToSuperAdminPortal?: () => void;
 }
@@ -20,6 +21,7 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
   onSelectFlight,
   onGoToLookup,
   onOpenCalculator,
+  onTrackFlight,
   currentUser,
   onGoToSuperAdminPortal,
 }) => {
@@ -179,12 +181,12 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-10">
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-6 sm:space-y-10">
       {/* American Airlines Travel Search Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#001E42] via-[#002D62] to-[#00152E] border border-slate-700/80 p-6 sm:p-10 text-white shadow-2xl space-y-6">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#001E42] via-[#002D62] to-[#00152E] border border-slate-700/80 p-4 sm:p-8 md:p-10 text-white shadow-2xl space-y-4 sm:space-y-6">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-[#0078D2]/20 via-[#C41230]/10 to-transparent rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-700/80 pb-6">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 border-b border-slate-700/80 pb-4 sm:pb-6">
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 text-sky-300 border border-slate-600/60 text-xs font-semibold">
               <AmericanAirlinesLogo size="sm" variant="dark-bg" />
@@ -194,7 +196,7 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight text-white">
+            <h1 className="text-xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight text-white">
               Where to next? Find American Airlines flights
             </h1>
 
@@ -206,7 +208,7 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
           <div className="flex-shrink-0">
             <button
               onClick={onGoToLookup}
-              className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-4 py-2.5 rounded-xl border border-white/20 flex items-center gap-2 transition backdrop-blur-xs"
+              className="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-4 py-2.5 rounded-xl border border-white/20 flex items-center justify-center gap-2 transition backdrop-blur-xs min-h-[40px]"
             >
               <Search className="w-4 h-4 text-sky-300" />
               <span>Lookup Seat or Ticket</span>
@@ -215,49 +217,50 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
         </div>
 
         {/* Trip Parameters Selector Bar (Roundtrip / Cabin / Passengers) */}
-        <div className="relative z-10 flex flex-wrap items-center gap-3 text-xs font-bold text-slate-200">
+        <div className="relative z-10 flex flex-wrap items-center gap-2 sm:gap-3 text-xs font-bold text-slate-200">
           <div className="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-700/80">
             <button
               type="button"
-              className="px-3 py-1.5 rounded-lg bg-[#0078D2] text-white shadow-xs"
+              className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#0078D2] text-white shadow-xs"
             >
               One-way
             </button>
             <button
               type="button"
-              className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition"
+              className="px-2.5 sm:px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition"
             >
               Roundtrip
             </button>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-900/80 px-3 py-2 rounded-xl border border-slate-700/80 text-slate-300">
-            <Armchair className="w-3.5 h-3.5 text-sky-400" />
-            <span>1 Traveler (Adult)</span>
+          <div className="flex items-center gap-1.5 bg-slate-900/80 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-slate-700/80 text-slate-300">
+            <Armchair className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+            <span>1 Traveler</span>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-900/80 px-3 py-2 rounded-xl border border-slate-700/80 text-slate-300">
-            <Award className="w-3.5 h-3.5 text-red-400" />
-            <span>Main Cabin / Premium Economy / Flagship®</span>
+          <div className="flex items-center gap-1.5 bg-slate-900/80 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-slate-700/80 text-slate-300">
+            <Award className="w-3.5 h-3.5 text-red-400 shrink-0" />
+            <span className="truncate max-w-[180px] xs:max-w-none">Main Cabin / Flagship®</span>
           </div>
         </div>
       </div>
 
       {/* Global Destination & Route Search Controls */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-md border border-slate-200/80 dark:border-slate-800 space-y-6">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 sm:p-6 shadow-md border border-slate-200/80 dark:border-slate-800 space-y-4 sm:space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
-          <h2 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
-            <Globe className="w-4 h-4 text-[#C41230]" /> Smart Takeoff Origin & Landing Destination Search Engine
+          <h2 className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
+            <Globe className="w-4 h-4 text-[#C41230] shrink-0" /> Smart Flight Search Engine
           </h2>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             {onOpenCalculator && (
               <button
                 type="button"
                 onClick={onOpenCalculator}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#001E42] to-[#003B7A] hover:from-[#002D62] hover:to-[#00519E] text-sky-200 text-xs font-black uppercase tracking-wider border border-sky-400/40 shadow-sm transition transform active:scale-95"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#001E42] to-[#003B7A] hover:from-[#002D62] hover:to-[#00519E] text-sky-200 text-xs font-black uppercase tracking-wider border border-sky-400/40 shadow-sm transition transform active:scale-95 min-h-[36px]"
               >
-                <Calculator className="w-4 h-4 text-sky-400" />
-                <span>Calculate Flight Duration</span>
+                <Calculator className="w-4 h-4 text-sky-400 shrink-0" />
+                <span className="hidden xs:inline">Calculate Flight Duration</span>
+                <span className="xs:hidden">Calculator</span>
               </button>
             )}
             {(origin !== 'all' || selectedCountry !== 'all' || selectedState !== 'all' || destinationCode !== 'all' || destinationSearchText !== '') && (
@@ -265,14 +268,14 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
                 onClick={handleResetFilters}
                 className="text-xs font-bold text-[#C41230] hover:underline flex items-center gap-1"
               >
-                <RefreshCw className="w-3.5 h-3.5" /> Reset Filters
+                <RefreshCw className="w-3.5 h-3.5" /> Reset
               </button>
             )}
           </div>
         </div>
 
         {/* Smart Autocomplete Search Inputs Grid (Takeoff Origin + Landing Destination) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 bg-gradient-to-r from-red-50/70 via-slate-50 to-sky-50/70 dark:from-red-950/30 dark:via-slate-900 dark:to-sky-950/30 p-4 rounded-2xl border border-red-200/80 dark:border-red-900/40">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 bg-gradient-to-r from-red-50/70 via-slate-50 to-sky-50/70 dark:from-red-950/30 dark:via-slate-900 dark:to-sky-950/30 p-3 sm:p-4 rounded-2xl border border-red-200/80 dark:border-red-900/40">
           {/* Takeoff Origin Hub Smart Autocomplete */}
           <SmartAirportAutocomplete
             type="takeoff"
@@ -513,74 +516,74 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
             displayFlights.map((flight) => (
               <div
                 key={flight.id}
-                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-xl transition-all duration-200 flex flex-col md:flex-row md:items-center justify-between gap-6 group hover:border-sky-300 dark:hover:border-sky-500"
+                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3.5 sm:p-6 shadow-sm hover:shadow-xl transition-all duration-200 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 group hover:border-sky-300 dark:hover:border-sky-500"
               >
               {/* Airline & Route details */}
-              <div className="flex items-start gap-4 flex-1">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#001E42] to-[#003A70] text-white p-2 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform flex-shrink-0">
+              <div className="flex items-start gap-3 sm:gap-4 flex-1">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#001E42] to-[#003A70] text-white p-1.5 sm:p-2 flex flex-col items-center justify-center shadow-md group-hover:scale-105 transition-transform shrink-0">
                   <span className="font-black text-xs text-sky-400">AA</span>
-                  <span className="text-[10px] font-mono text-slate-300">{flight.flightNumber.split('-')[1]}</span>
+                  <span className="text-[9px] sm:text-[10px] font-mono text-slate-300">{flight.flightNumber.split('-')[1]}</span>
                 </div>
 
-                <div className="space-y-2 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-base">{flight.airline}</h3>
-                    <span className="font-mono text-xs font-extrabold px-2.5 py-0.5 rounded bg-sky-50 dark:bg-sky-950/60 text-[#0078D2] dark:text-sky-300 border border-sky-200/80 dark:border-sky-800/80">
+                <div className="space-y-2 flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-sm sm:text-base">{flight.airline}</h3>
+                    <span className="font-mono text-[11px] sm:text-xs font-extrabold px-2 py-0.5 rounded bg-sky-50 dark:bg-sky-950/60 text-[#0078D2] dark:text-sky-300 border border-sky-200/80 dark:border-sky-800/80">
                       Flight {flight.flightNumber}
                     </span>
-                    <span className="text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/60 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-full font-bold">
+                    <span className="text-[10px] sm:text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/60 dark:border-emerald-800/60 px-2 py-0.5 rounded-full font-bold">
                       {flight.status}
                     </span>
                   </div>
 
                   {/* Route & Airport Details Box */}
-                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs border-b border-slate-200/80 dark:border-slate-700/80 pb-3">
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-2.5 sm:space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 text-xs border-b border-slate-200/80 dark:border-slate-700/80 pb-2.5 sm:pb-3">
                       {/* Take-off Airport & Origin */}
-                      <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs space-y-1">
-                        <div className="text-[10px] text-sky-700 dark:text-sky-400 font-black uppercase tracking-wider flex items-center gap-1">
-                          <Plane className="w-3.5 h-3.5 text-[#0078D2] transform -rotate-45" />
-                          Starting From (Take-off Airport)
+                      <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs space-y-1">
+                        <div className="text-[9px] sm:text-[10px] text-sky-700 dark:text-sky-400 font-black uppercase tracking-wider flex items-center gap-1">
+                          <Plane className="w-3.5 h-3.5 text-[#0078D2] transform -rotate-45 shrink-0" />
+                          <span>Starting From (Take-off)</span>
                         </div>
-                        <div className="text-base font-black text-slate-900 dark:text-slate-100">{flight.origin.city} ({flight.origin.code})</div>
-                        <div className="text-xs font-bold text-sky-800 dark:text-sky-300 flex items-center gap-1">
+                        <div className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100">{flight.origin.city} ({flight.origin.code})</div>
+                        <div className="text-[11px] sm:text-xs font-bold text-sky-800 dark:text-sky-300 flex items-center gap-1 truncate">
                           <MapPin className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
-                          <span>{flight.origin.airport}</span>
+                          <span className="truncate">{flight.origin.airport}</span>
                         </div>
-                        <div className="text-[11px] text-slate-600 dark:text-slate-400 font-semibold pt-1 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5">
-                          <span className="text-slate-400 dark:text-slate-500">Flight Time:</span>
-                          <span className="font-mono font-bold text-slate-900 dark:text-slate-200">
+                        <div className="text-[10px] sm:text-[11px] text-slate-600 dark:text-slate-400 font-semibold pt-1 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5">
+                          <span className="text-slate-400 dark:text-slate-500">Departure:</span>
+                          <span className="font-mono font-bold text-slate-900 dark:text-slate-200 truncate">
                             {new Date(flight.departureTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} at {new Date(flight.departureTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
                       </div>
 
                       {/* Landing Airport & Destination */}
-                      <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs space-y-1">
-                        <div className="text-[10px] text-red-700 dark:text-red-400 font-black uppercase tracking-wider flex items-center gap-1">
-                          <Plane className="w-3.5 h-3.5 text-[#C41230] transform rotate-45" />
-                          Heading To (Landing Airport)
+                      <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs space-y-1">
+                        <div className="text-[9px] sm:text-[10px] text-red-700 dark:text-red-400 font-black uppercase tracking-wider flex items-center gap-1">
+                          <Plane className="w-3.5 h-3.5 text-[#C41230] transform rotate-45 shrink-0" />
+                          <span>Heading To (Landing)</span>
                         </div>
-                        <div className="text-base font-black text-slate-900 dark:text-slate-100">{flight.destination.city} ({flight.destination.code})</div>
-                        <div className="text-xs font-bold text-red-800 dark:text-red-300 flex items-center gap-1">
+                        <div className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100">{flight.destination.city} ({flight.destination.code})</div>
+                        <div className="text-[11px] sm:text-xs font-bold text-red-800 dark:text-red-300 flex items-center gap-1 truncate">
                           <MapPin className="w-3.5 h-3.5 text-red-600 dark:text-red-400 shrink-0" />
-                          <span>{flight.destination.airport}</span>
+                          <span className="truncate">{flight.destination.airport}</span>
                         </div>
-                        <div className="text-[11px] text-slate-600 dark:text-slate-400 font-semibold pt-1 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5">
-                          <span className="text-slate-400 dark:text-slate-500">Arrival Time:</span>
-                          <span className="font-mono font-bold text-slate-900 dark:text-slate-200">
+                        <div className="text-[10px] sm:text-[11px] text-slate-600 dark:text-slate-400 font-semibold pt-1 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5">
+                          <span className="text-slate-400 dark:text-slate-500">Arrival:</span>
+                          <span className="font-mono font-bold text-slate-900 dark:text-slate-200 truncate">
                             {new Date(flight.arrivalTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} at {new Date(flight.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-between text-xs text-slate-600 dark:text-slate-300 gap-2 font-medium">
+                    <div className="flex flex-wrap items-center justify-between text-[11px] sm:text-xs text-slate-600 dark:text-slate-300 gap-2 font-medium">
                       <span>Aircraft: <strong className="text-slate-900 dark:text-slate-100 font-bold">{flight.aircraft}</strong></span>
                       <span>Terminal <strong className="text-slate-900 dark:text-slate-100 font-bold">{flight.terminal}</strong> • Gate <strong className="text-slate-900 dark:text-slate-100 font-bold">{flight.gate}</strong></span>
                       <span>Duration: <strong className="text-slate-900 dark:text-slate-100 font-bold">{flight.duration}</strong></span>
-                      <span className="text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/60">
-                        <Armchair className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <span className="text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/60 px-2 sm:px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/60">
+                        <Armchair className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-emerald-600 dark:text-emerald-400" />
                         {flight.availableSeats} Open Seats
                       </span>
                     </div>
@@ -589,34 +592,47 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
               </div>
 
               {/* Price & Booking Access Status */}
-              <div className="flex flex-row md:flex-col items-center md:items-end justify-between border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800 pt-4 md:pt-0 md:pl-6 gap-3">
+              <div className="flex flex-row md:flex-col items-center md:items-end justify-between border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800 pt-3 md:pt-0 md:pl-6 gap-3">
                 <div className="text-left md:text-right">
                   <span className="text-[10px] uppercase text-slate-400 font-extrabold block">Main Cabin & Up</span>
-                  <span className="text-2xl font-black text-[#001E42] dark:text-sky-400">${flight.price}</span>
+                  <span className="text-xl sm:text-2xl font-black text-[#001E42] dark:text-sky-400">${flight.price}</span>
                   <span className="text-[10px] text-slate-400 block">base fare USD</span>
                 </div>
 
-                {isSuperAdmin ? (
-                  <button
-                    onClick={() => {
-                      if (onGoToSuperAdminPortal) {
-                        onGoToSuperAdminPortal();
-                      } else {
-                        onSelectFlight(flight);
-                      }
-                    }}
-                    className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 shadow-md hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <Crown className="w-4 h-4 text-slate-950" />
-                    <span>Book via Super Admin Portal</span>
-                    <ArrowRight className="w-4 h-4 text-slate-950" />
-                  </button>
-                ) : (
-                  <div className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-extrabold text-xs px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-amber-500 shrink-0" />
-                    <span>Schedule Only (Super Admin Booking Only)</span>
-                  </div>
-                )}
+                <div className="flex flex-col sm:flex-row md:flex-col gap-2 w-full sm:w-auto">
+                  {onTrackFlight && (
+                    <button
+                      type="button"
+                      onClick={() => onTrackFlight(flight)}
+                      className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs px-3.5 sm:px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 transition-all flex items-center justify-center gap-1.5 min-h-[44px]"
+                    >
+                      <Radio className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <span>Track Flight</span>
+                    </button>
+                  )}
+
+                  {isSuperAdmin ? (
+                    <button
+                      onClick={() => {
+                        if (onGoToSuperAdminPortal) {
+                          onGoToSuperAdminPortal();
+                        } else {
+                          onSelectFlight(flight);
+                        }
+                      }}
+                      className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs px-3.5 sm:px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md hover:scale-[1.02] active:scale-[0.98] min-h-[44px]"
+                    >
+                      <Crown className="w-4 h-4 text-slate-950 shrink-0" />
+                      <span>Book Flight</span>
+                      <ArrowRight className="w-4 h-4 text-slate-950 shrink-0" />
+                    </button>
+                  ) : (
+                    <div className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-extrabold text-[11px] sm:text-xs px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-1.5 min-h-[40px]">
+                      <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                      <span>Super Admin Restricted</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )))

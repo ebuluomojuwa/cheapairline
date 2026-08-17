@@ -3,6 +3,7 @@ import { Flight, Booking, Seat, AppUser, UserRole } from './types';
 import { INITIAL_FLIGHTS } from './data/mockData';
 import { Header } from './components/Header';
 import { FlightSearch } from './components/FlightSearch';
+import { FlightTrackerView } from './components/FlightTrackerView';
 import { PassengerLookup } from './components/PassengerLookup';
 import { SeatExplorerView } from './components/SeatExplorerView';
 import { MyBookings } from './components/MyBookings';
@@ -251,8 +252,26 @@ export default function App() {
   };
 
   // Navigation State
-  const [activeTab, setActiveTab] = useState<'search' | 'lookup' | 'seat-explorer' | 'my-bookings' | 'admin-users'>('search');
+  const [activeTab, setActiveTab] = useState<'search' | 'tracker' | 'lookup' | 'seat-explorer' | 'my-bookings' | 'admin-users'>('search');
   const [lookupQuery, setLookupQuery] = useState<string>('');
+  const [trackerFlightId, setTrackerFlightId] = useState<string>('fl-101');
+  const [trackerQuery, setTrackerQuery] = useState<string>('');
+
+  const handleTrackFlight = (flightOrId: Flight | string, queryParam?: string) => {
+    if (typeof flightOrId === 'string') {
+      const found = flights.find((f) => f.id === flightOrId || f.flightNumber.toLowerCase() === flightOrId.toLowerCase());
+      if (found) {
+        setTrackerFlightId(found.id);
+        setTrackerQuery(queryParam || found.flightNumber);
+      } else {
+        setTrackerQuery(flightOrId);
+      }
+    } else {
+      setTrackerFlightId(flightOrId.id);
+      setTrackerQuery(queryParam || flightOrId.flightNumber);
+    }
+    setActiveTab('tracker');
+  };
 
   // Modals
   const [bookingFlight, setBookingFlight] = useState<Flight | null>(null);
@@ -332,8 +351,28 @@ export default function App() {
             onSelectFlight={(flight) => handleInitiateBooking(flight)}
             onGoToLookup={() => setActiveTab('lookup')}
             onOpenCalculator={() => setIsCalculatorOpen(true)}
+            onTrackFlight={(flight) => handleTrackFlight(flight)}
             currentUser={currentUser}
             onGoToSuperAdminPortal={() => setActiveTab('admin-users')}
+          />
+        )}
+
+        {activeTab === 'tracker' && (
+          <FlightTrackerView
+            flights={flights}
+            bookings={bookings}
+            initialFlightId={trackerFlightId}
+            initialQuery={trackerQuery}
+            onSelectFlightForBooking={(flight) => handleInitiateBooking(flight)}
+            onViewSeatMap={(flight) => {
+              setActiveTab('seat-explorer');
+            }}
+            onViewBoardingPass={(b) => setBoardingPassBooking(b)}
+            onOpenCalculator={() => setIsCalculatorOpen(true)}
+            onGoToManifests={(queryText) => {
+              setLookupQuery(queryText);
+              setActiveTab('lookup');
+            }}
           />
         )}
 
@@ -345,6 +384,7 @@ export default function App() {
             onViewBoardingPass={(b) => setBoardingPassBooking(b)}
             onCancelBooking={handleCancelBooking}
             onApproveGatePass={handleApproveGatePass}
+            onTrackFlight={(flight) => handleTrackFlight(flight)}
             initialQuery={lookupQuery}
           />
         )}
@@ -367,6 +407,7 @@ export default function App() {
             onViewBoardingPass={(b) => setBoardingPassBooking(b)}
             onCancelBooking={handleCancelBooking}
             onInspectPassenger={handleInspectPassenger}
+            onTrackFlight={(flightId, flightNumber) => handleTrackFlight(flightId || flightNumber || 'fl-101')}
             currentUser={currentUser}
             onUpdateBookingPrice={handleUpdateBookingPrice}
           />

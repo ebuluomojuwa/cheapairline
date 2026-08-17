@@ -199,72 +199,72 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-5 sm:space-y-8">
       {/* Top Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#001E42] via-[#002D62] to-[#C41230] p-6 sm:p-8 text-white shadow-2xl border border-red-500/30 space-y-6">
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-r from-[#001E42] via-[#002D62] to-[#C41230] p-4 sm:p-8 text-white shadow-2xl border border-red-500/30 space-y-4 sm:space-y-6">
         <div className="absolute top-0 right-0 w-96 h-96 bg-red-600/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
         
-        <div className="relative z-10 max-w-3xl space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 text-amber-300 border border-amber-500/40 text-xs font-black uppercase tracking-wider shadow-md">
-            <Crown className="w-4 h-4 text-amber-400" /> Super Admin Control Portal
+        <div className="relative z-10 max-w-3xl space-y-2 sm:space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/90 text-amber-300 border border-amber-500/40 text-[11px] sm:text-xs font-black uppercase tracking-wider shadow-md">
+            <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" /> Super Admin Control Portal
           </div>
 
-          <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
+          <h1 className="text-xl sm:text-4xl font-black text-white tracking-tight">
             American Airlines Super Admin Operations
           </h1>
           <p className="text-slate-200 text-xs sm:text-sm leading-relaxed">
             As Super Admin, you can manually input flight prices <strong className="text-amber-300">when a flight is booked</strong> or manually override ticket prices <strong className="text-amber-300">after it has been booked</strong>.
           </p>
 
-          <div className="flex flex-wrap items-center gap-3 text-xs pt-2">
-            <div className="bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-700 font-mono text-amber-300 flex items-center gap-1.5 font-bold">
-              <ShieldCheck className="w-4 h-4 text-amber-400" /> Super Admin: {currentUser?.email}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] sm:text-xs pt-1 sm:pt-2">
+            <div className="bg-slate-900/80 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-700 font-mono text-amber-300 flex items-center gap-1.5 font-bold truncate">
+              <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" /> <span className="truncate">Admin: {currentUser?.email}</span>
             </div>
-            <div className="bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-700 font-mono text-sky-300 flex items-center gap-1.5 font-bold">
-              <Plane className="w-4 h-4 text-sky-400" /> Total Active Flights: {flights.length}
+            <div className="bg-slate-900/80 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-700 font-mono text-sky-300 flex items-center gap-1.5 font-bold">
+              <Plane className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-400 shrink-0" /> Flights: {flights.length}
             </div>
-            <div className="bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-700 font-mono text-emerald-300 flex items-center gap-1.5 font-bold">
-              <Ticket className="w-4 h-4 text-emerald-400" /> Booked Tickets: {bookings.length}
+            <div className="bg-slate-900/80 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-700 font-mono text-emerald-300 flex items-center gap-1.5 font-bold">
+              <Ticket className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" /> Bookings: {bookings.length}
             </div>
           </div>
         </div>
 
         {/* Tab Switcher */}
-        <div className="relative z-10 flex flex-wrap items-center gap-2 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-700/80 max-w-2xl">
+        <div className="relative z-10 flex items-center gap-1.5 sm:gap-2 bg-slate-950/80 p-1 sm:p-1.5 rounded-2xl border border-slate-700/80 max-w-2xl overflow-x-auto">
           <button
             onClick={() => setActiveTab('pricing')}
-            className={`flex-1 min-w-[160px] py-2.5 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 min-w-[130px] sm:min-w-[160px] py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-black transition-all flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap min-h-[40px] ${
               activeTab === 'pricing'
                 ? 'bg-gradient-to-r from-[#0078D2] to-[#00519E] text-white shadow-lg border border-sky-400/40'
                 : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
             }`}
           >
-            <DollarSign className="w-4 h-4 text-amber-300" />
-            <span>Flight Schedule Base Prices</span>
+            <DollarSign className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+            <span>Flight Base Prices</span>
           </button>
 
           <button
             onClick={() => setActiveTab('booked-pricing')}
-            className={`flex-1 min-w-[170px] py-2.5 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 min-w-[140px] sm:min-w-[170px] py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-black transition-all flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap min-h-[40px] ${
               activeTab === 'booked-pricing'
                 ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg border border-emerald-400/40'
                 : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
             }`}
           >
-            <Receipt className="w-4 h-4 text-emerald-300" />
-            <span>Booked Ticket Price Override</span>
+            <Receipt className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+            <span>Booked Price Override</span>
           </button>
 
           <button
             onClick={() => setActiveTab('users')}
-            className={`flex-1 min-w-[150px] py-2.5 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 min-w-[130px] sm:min-w-[150px] py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-black transition-all flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap min-h-[40px] ${
               activeTab === 'users'
                 ? 'bg-gradient-to-r from-[#0078D2] to-[#00519E] text-white shadow-lg border border-sky-400/40'
                 : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
             }`}
           >
-            <Users className="w-4 h-4 text-sky-300" />
-            <span>User Roles & Permissions</span>
+            <Users className="w-3.5 h-3.5 text-sky-300 shrink-0" />
+            <span>User Roles</span>
           </button>
         </div>
       </div>
@@ -328,22 +328,22 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                 return (
                   <div
                     key={flight.id}
-                    className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-md hover:shadow-xl transition-all space-y-4"
+                    className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 shadow-md hover:shadow-xl transition-all space-y-4"
                   >
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6">
                       {/* Flight Details */}
-                      <div className="flex items-start gap-4 flex-1">
-                        <div className="w-12 h-12 rounded-2xl bg-[#001E42] text-white flex flex-col items-center justify-center shrink-0 font-black shadow-md">
-                          <span className="text-xs text-sky-400">AA</span>
-                          <span className="text-[10px] text-slate-300 font-mono">{flight.flightNumber.split('-')[1]}</span>
+                      <div className="flex items-start gap-3 sm:gap-4 flex-1">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-[#001E42] text-white flex flex-col items-center justify-center shrink-0 font-black shadow-md">
+                          <span className="text-[11px] sm:text-xs text-sky-400">AA</span>
+                          <span className="text-[9px] sm:text-[10px] text-slate-300 font-mono">{flight.flightNumber.split('-')[1]}</span>
                         </div>
 
-                        <div className="space-y-1">
+                        <div className="space-y-1.5 min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-black text-slate-900 dark:text-slate-100 text-base">
+                            <span className="font-black text-slate-900 dark:text-slate-100 text-sm sm:text-base">
                               Flight {flight.flightNumber}
                             </span>
-                            <span className="text-xs font-extrabold px-2.5 py-0.5 rounded bg-sky-50 dark:bg-sky-950 text-[#0078D2] dark:text-sky-300 border border-sky-200 dark:border-sky-800">
+                            <span className="text-[11px] sm:text-xs font-extrabold px-2 py-0.5 rounded bg-sky-50 dark:bg-sky-950 text-[#0078D2] dark:text-sky-300 border border-sky-200 dark:border-sky-800">
                               {flight.aircraft}
                             </span>
                             <select
@@ -355,7 +355,7 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                                   setStatusMsg(`Flight ${flight.flightNumber} status updated to "${newStatus}"!`);
                                 }
                               }}
-                              className="text-xs font-black px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 outline-none focus:ring-2 focus:ring-[#0078D2] cursor-pointer"
+                              className="text-[11px] sm:text-xs font-black px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 outline-none focus:ring-2 focus:ring-[#0078D2] cursor-pointer max-w-full"
                             >
                               <option value="On Time">On Time</option>
                               <option value="Scheduled">Scheduled</option>
@@ -366,20 +366,20 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                             </select>
                           </div>
 
-                          <div className="text-xs text-slate-600 dark:text-slate-300 font-bold flex items-center gap-2">
+                          <div className="text-xs text-slate-600 dark:text-slate-300 font-bold flex flex-wrap items-center gap-1.5">
                             <span className="text-slate-900 dark:text-slate-100 font-extrabold">{flight.origin.city} ({flight.origin.code})</span>
-                            <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                            <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                             <span className="text-slate-900 dark:text-slate-100 font-extrabold">{flight.destination.city} ({flight.destination.code})</span>
-                            <span className="text-slate-400 font-normal">• Terminal {flight.terminal}, Gate {flight.gate}</span>
+                            <span className="text-slate-400 font-normal truncate">• Term {flight.terminal}, Gate {flight.gate}</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Manual Price Input Control (Super Admin) */}
-                      <div className="bg-slate-50 dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-center gap-4 shrink-0">
+                      <div className="bg-slate-50 dark:bg-slate-800/80 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 shrink-0 w-full lg:w-auto">
                         <div className="space-y-1 text-left">
                           <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block flex items-center gap-1">
-                            <Tag className="w-3 h-3 text-amber-500" /> Manual Ticket Price ($ USD)
+                            <Tag className="w-3 h-3 text-amber-500" /> Manual Price ($ USD)
                           </label>
 
                           <div className="relative flex items-center">
@@ -395,14 +395,14 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                                   [flight.id]: e.target.value,
                                 }));
                               }}
-                              className="pl-7 pr-3 py-2 w-36 rounded-xl border border-slate-300 dark:border-slate-600 font-black text-lg text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 focus:border-[#0078D2] focus:ring-2 focus:ring-[#0078D2] outline-none shadow-xs"
+                              className="pl-7 pr-3 py-2 w-full sm:w-36 rounded-xl border border-slate-300 dark:border-slate-600 font-black text-base sm:text-lg text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 focus:border-[#0078D2] focus:ring-2 focus:ring-[#0078D2] outline-none shadow-xs min-h-[40px]"
                             />
                           </div>
                         </div>
 
                         {/* Quick Presets & Save Button */}
                         <div className="flex flex-col gap-2 w-full sm:w-auto">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1 flex-wrap sm:flex-nowrap">
                             {['450', '650', '850', '1200'].map((preset) => (
                               <button
                                 key={preset}
@@ -413,7 +413,7 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                                     [flight.id]: preset,
                                   }));
                                 }}
-                                className="px-2 py-1 bg-white dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-700 text-[11px] font-bold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg transition"
+                                className="px-2 py-1 bg-white dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-700 text-[11px] font-bold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg transition min-h-[30px]"
                               >
                                 ${preset}
                               </button>
@@ -424,7 +424,7 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                             type="button"
                             disabled={isSaving}
                             onClick={() => handleSavePrice(flight)}
-                            className={`w-full py-2.5 px-4 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 transition shadow-md ${
+                            className={`w-full py-2.5 px-4 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 transition shadow-md min-h-[40px] ${
                               isModified
                                 ? 'bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white shadow-emerald-900/30 ring-2 ring-emerald-400/40'
                                 : 'bg-[#0078D2] hover:bg-[#0060A9] text-white shadow-sky-900/30'
@@ -444,7 +444,7 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                     {/* Footer price comparison info & Seat Reset actions */}
                     <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400 font-mono">
                       <div>
-                        <span>Active Base Price: <strong className="text-emerald-600 dark:text-emerald-400 font-bold">${flight.price} USD</strong></span>
+                        <span>Active Base: <strong className="text-emerald-600 dark:text-emerald-400 font-bold">${flight.price} USD</strong></span>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
@@ -458,10 +458,10 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                             }
                             setStatusMsg(`Flight ${flight.flightNumber} status set to Unbooked. All seats released and 100% available!`);
                           }}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-1 shadow-sm transition"
+                          className="flex-1 sm:flex-initial px-3 py-2 sm:py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-1 shadow-sm transition min-h-[38px]"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Set Unbooked (Release Seats)</span>
+                          <span>Release Seats</span>
                         </button>
 
                         <button
@@ -474,17 +474,17 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                             }
                             setStatusMsg(`Flight ${flight.flightNumber} marked as Flight Completed! All seats released and 100% available.`);
                           }}
-                          className="px-3 py-1.5 rounded-xl bg-sky-700 hover:bg-sky-800 text-white font-black text-xs flex items-center justify-center gap-1 shadow-sm transition"
+                          className="flex-1 sm:flex-initial px-3 py-2 sm:py-1.5 rounded-xl bg-sky-700 hover:bg-sky-800 text-white font-black text-xs flex items-center justify-center gap-1 shadow-sm transition min-h-[38px]"
                         >
                           <Plane className="w-3.5 h-3.5" />
-                          <span>Mark Flight Completed</span>
+                          <span>Complete Flight</span>
                         </button>
 
                         {onBookFlight && (
                           <button
                             type="button"
                             onClick={() => onBookFlight(flight)}
-                            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-red-600 hover:from-amber-600 hover:to-red-700 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md transition"
+                            className="w-full sm:w-auto px-3.5 py-2 sm:py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-red-600 hover:from-amber-600 hover:to-red-700 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md transition min-h-[38px]"
                           >
                             <Crown className="w-3.5 h-3.5 text-amber-200" />
                             <span>Book Flight</span>
@@ -503,9 +503,9 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
 
       {/* --- TAB 2: BOOKED TICKET PRICE OVERRIDE (AFTER FLIGHT IS BOOKED) --- */}
       {activeTab === 'booked-pricing' && (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Security & Info Notice */}
-          <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
                 <Receipt className="w-5 h-5" />
@@ -525,15 +525,15 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
           </div>
 
           {/* Search bar for bookings */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-md border border-slate-200/80 dark:border-slate-800">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-3 sm:p-4 shadow-md border border-slate-200/80 dark:border-slate-800">
             <div className="relative">
-              <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 value={bookingSearchQuery}
                 onChange={(e) => setBookingSearchQuery(e.target.value)}
-                placeholder="Search booked tickets by Ticket # (e.g. 001-9482), Confirmation Code, Passenger Name, or Seat..."
-                className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 focus:border-[#0078D2] outline-none text-sm font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800"
+                placeholder="Search booked tickets by Ticket #, PNR, Passenger, Seat..."
+                className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 rounded-xl border border-slate-300 dark:border-slate-700 focus:border-[#0078D2] outline-none text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 min-h-[44px]"
               />
             </div>
           </div>
@@ -541,7 +541,7 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
           {/* Booked Tickets Price List */}
           <div className="grid grid-cols-1 gap-4">
             {filteredBookings.length === 0 ? (
-              <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 text-center text-slate-400 font-bold border border-slate-200 dark:border-slate-800">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-8 text-center text-slate-400 font-bold border border-slate-200 dark:border-slate-800 text-xs sm:text-sm">
                 {bookings.length === 0 
                   ? 'No booked tickets found in the system database. Use the search page or quick booking to create a ticket first.'
                   : `No booked tickets match "${bookingSearchQuery}".`}
@@ -555,25 +555,25 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                 return (
                   <div
                     key={booking.id}
-                    className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-md hover:shadow-xl transition-all space-y-4"
+                    className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 shadow-md hover:shadow-xl transition-all space-y-4"
                   >
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6">
                       {/* Ticket & Passenger Information */}
-                      <div className="flex items-start gap-4 flex-1">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#001E42] to-[#002D62] text-white flex flex-col items-center justify-center shrink-0 font-black shadow-md border border-slate-700">
-                          <Ticket className="w-5 h-5 text-amber-400" />
+                      <div className="flex items-start gap-3 sm:gap-4 flex-1">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#001E42] to-[#002D62] text-white flex flex-col items-center justify-center shrink-0 font-black shadow-md border border-slate-700">
+                          <Ticket className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
                           <span className="text-[9px] text-slate-300 font-mono mt-0.5">{booking.seatNumber}</span>
                         </div>
 
-                        <div className="space-y-1">
+                        <div className="space-y-1 min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-black text-slate-900 dark:text-slate-100 text-base">
+                            <span className="font-black text-slate-900 dark:text-slate-100 text-sm sm:text-base">
                               {booking.passenger.fullName}
                             </span>
-                            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                            <span className="text-[10px] sm:text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                               Ticket: {booking.ticketNumber}
                             </span>
-                            <span className="text-xs font-mono font-black px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                            <span className="text-[10px] sm:text-xs font-mono font-black px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
                               PNR: {booking.confirmationCode}
                             </span>
                           </div>
@@ -586,17 +586,17 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                             <span>Seat {booking.seatNumber} ({booking.cabinClass})</span>
                           </div>
 
-                          <div className="text-[11px] text-slate-400 font-mono">
+                          <div className="text-[10px] sm:text-[11px] text-slate-400 font-mono truncate">
                             Booked: {new Date(booking.bookingDate).toLocaleString()} • Email: {booking.passenger.email}
                           </div>
                         </div>
                       </div>
 
                       {/* Manual Booking Price Input Control (Super Admin) */}
-                      <div className="bg-slate-50 dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-center gap-4 shrink-0">
+                      <div className="bg-slate-50 dark:bg-slate-800/80 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 shrink-0 w-full lg:w-auto">
                         <div className="space-y-1 text-left">
                           <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block flex items-center gap-1">
-                            <Crown className="w-3 h-3 text-amber-500" /> Manual Booked Ticket Price ($ USD)
+                            <Crown className="w-3 h-3 text-amber-500" /> Manual Ticket Price ($ USD)
                           </label>
 
                           <div className="relative flex items-center">
@@ -612,14 +612,14 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                                   [booking.id]: e.target.value,
                                 }));
                               }}
-                              className="pl-7 pr-3 py-2 w-36 rounded-xl border border-slate-300 dark:border-slate-600 font-black text-lg text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 outline-none shadow-xs"
+                              className="pl-7 pr-3 py-2 w-full sm:w-36 rounded-xl border border-slate-300 dark:border-slate-600 font-black text-base sm:text-lg text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 outline-none shadow-xs min-h-[40px]"
                             />
                           </div>
                         </div>
 
                         {/* Quick Presets & Save Button */}
                         <div className="flex flex-col gap-2 w-full sm:w-auto">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1 flex-wrap sm:flex-nowrap">
                             {['0', '150', '350', '500', '750'].map((preset) => (
                               <button
                                 key={preset}
@@ -630,7 +630,7 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                                     [booking.id]: preset,
                                   }));
                                 }}
-                                className="px-2 py-1 bg-white dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-700 text-[11px] font-bold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg transition"
+                                className="px-2 py-1 bg-white dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-700 text-[11px] font-bold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg transition min-h-[30px]"
                               >
                                 ${preset}
                               </button>
@@ -641,7 +641,7 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                             type="button"
                             disabled={isSaving}
                             onClick={() => handleSaveBookingPrice(booking)}
-                            className={`w-full py-2.5 px-4 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 transition shadow-md ${
+                            className={`w-full py-2.5 px-4 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 transition shadow-md min-h-[40px] ${
                               isModified
                                 ? 'bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white shadow-emerald-900/30 ring-2 ring-emerald-400/40'
                                 : 'bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white shadow-slate-900/20'
@@ -659,9 +659,9 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                     </div>
 
                     {/* Footer price comparison info */}
-                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-mono">
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-mono">
                       <span>Recorded Ticket Price Paid: <strong className="text-emerald-600 dark:text-emerald-400 font-bold">${booking.pricePaid ?? 0} USD</strong></span>
-                      <span className="text-[11px] italic">Post-booking manual override by Super Admin</span>
+                      <span className="text-[10px] sm:text-[11px] italic">Post-booking manual override by Super Admin</span>
                     </div>
                   </div>
                 );
@@ -673,18 +673,18 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
 
       {/* --- TAB 3: USER ROLES & PERMISSIONS --- */}
       {activeTab === 'users' && (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* User Search & Filter Bar */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-md border border-slate-200/80 dark:border-slate-800 space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-6 shadow-md border border-slate-200/80 dark:border-slate-800 space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center justify-between">
               <div className="relative flex-1 w-full">
-                <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   value={userSearchQuery}
                   onChange={(e) => setUserSearchQuery(e.target.value)}
                   placeholder="Search registered accounts by email, name, or role..."
-                  className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 focus:border-[#0078D2] outline-none text-sm font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800"
+                  className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 rounded-xl border border-slate-300 dark:border-slate-700 focus:border-[#0078D2] outline-none text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 min-h-[44px]"
                 />
               </div>
 
@@ -696,17 +696,17 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
 
           {/* Users Table */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+            <div className="overflow-x-auto -mx-1 sm:mx-0">
+              <table className="w-full text-left border-collapse min-w-[550px]">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-xs font-black uppercase tracking-wider">
-                    <th className="py-4 px-6">User / Email</th>
-                    <th className="py-4 px-6">Current Role</th>
-                    <th className="py-4 px-6">Registered Date</th>
-                    <th className="py-4 px-6 text-right">Role Management</th>
+                    <th className="py-3 sm:py-4 px-4 sm:px-6">User / Email</th>
+                    <th className="py-3 sm:py-4 px-4 sm:px-6">Current Role</th>
+                    <th className="py-3 sm:py-4 px-4 sm:px-6">Registered Date</th>
+                    <th className="py-3 sm:py-4 px-4 sm:px-6 text-right">Role Management</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs sm:text-sm">
                   {loadingUsers ? (
                     <tr>
                       <td colSpan={4} className="py-12 text-center text-slate-400 font-bold">
@@ -725,9 +725,9 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
 
                       return (
                         <tr key={u.uid} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition">
-                          <td className="py-4 px-6">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-white text-sm ${
+                          <td className="py-3 sm:py-4 px-4 sm:px-6">
+                            <div className="flex items-center gap-2.5 sm:gap-3">
+                              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center font-black text-white text-xs sm:text-sm shrink-0 ${
                                 isSuper 
                                   ? 'bg-gradient-to-tr from-amber-500 to-red-600 shadow-md' 
                                   : u.role === 'admin'
@@ -736,24 +736,24 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                               }`}>
                                 {u.displayName?.charAt(0).toUpperCase() || u.email.charAt(0).toUpperCase()}
                               </div>
-                              <div>
-                                <div className="font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                                  {u.displayName || 'User'}
+                              <div className="min-w-0">
+                                <div className="font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                                  <span className="truncate">{u.displayName || 'User'}</span>
                                   {isSuper && (
-                                    <span className="bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-[10px] px-2 py-0.5 rounded-md font-black border border-amber-300 dark:border-amber-800 uppercase flex items-center gap-1">
+                                    <span className="bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-md font-black border border-amber-300 dark:border-amber-800 uppercase flex items-center gap-1">
                                       <Crown className="w-3 h-3 text-amber-500" /> Super Admin
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-xs text-slate-500 dark:text-slate-400 font-mono flex items-center gap-1 mt-0.5">
-                                  <Mail className="w-3 h-3" /> {u.email}
+                                <div className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-mono flex items-center gap-1 mt-0.5 truncate">
+                                  <Mail className="w-3 h-3 shrink-0" /> <span className="truncate">{u.email}</span>
                                 </div>
                               </div>
                             </div>
                           </td>
 
-                          <td className="py-4 px-6">
-                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wide border ${
+                          <td className="py-3 sm:py-4 px-4 sm:px-6">
+                            <span className={`inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide border whitespace-nowrap ${
                               u.role === 'superadmin'
                                 ? 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800'
                                 : u.role === 'admin'
@@ -767,13 +767,13 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                             </span>
                           </td>
 
-                          <td className="py-4 px-6 text-xs text-slate-500 dark:text-slate-400 font-mono">
+                          <td className="py-3 sm:py-4 px-4 sm:px-6 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-mono whitespace-nowrap">
                             {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Initial'}
                           </td>
 
-                          <td className="py-4 px-6 text-right">
+                          <td className="py-3 sm:py-4 px-4 sm:px-6 text-right">
                             {isSuper ? (
-                              <span className="text-xs font-bold text-amber-600 dark:text-amber-400 italic">
+                              <span className="text-xs font-bold text-amber-600 dark:text-amber-400 italic whitespace-nowrap">
                                 Protected Super Admin
                               </span>
                             ) : (
@@ -782,10 +782,10 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                                   disabled={updatingUid === u.uid}
                                   value={u.role}
                                   onChange={(e) => handleRoleChange(u.uid, u.email, e.target.value as UserRole)}
-                                  className="py-1.5 px-3 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-black text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-[#0078D2] outline-none"
+                                  className="py-1.5 px-2.5 sm:px-3 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-black text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-[#0078D2] outline-none min-h-[38px]"
                                 >
-                                  <option value="user">Regular Passenger (User)</option>
-                                  <option value="admin">Airline Front Desk Admin</option>
+                                  <option value="user">Passenger (User)</option>
+                                  <option value="admin">Desk Admin</option>
                                   <option value="superadmin">Super Admin</option>
                                 </select>
                               </div>

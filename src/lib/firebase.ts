@@ -190,9 +190,20 @@ export function subscribeBookings(onData: (bookings: Booking[]) => void): () => 
   return unsubscribe;
 }
 
+/**
+ * Helper to recursively clean data object before sending to Firestore, removing undefined fields
+ */
+export function sanitizeFirestoreData<T>(data: T): T {
+  if (data === null || data === undefined) return data;
+  return JSON.parse(
+    JSON.stringify(data, (key, value) => (value === undefined ? null : value))
+  );
+}
+
 export async function addBookingToFirestore(booking: Booking): Promise<void> {
   try {
-    await setDoc(doc(db, BOOKINGS_COLLECTION, booking.id), booking);
+    const cleanBooking = sanitizeFirestoreData(booking);
+    await setDoc(doc(db, BOOKINGS_COLLECTION, booking.id), cleanBooking);
   } catch (err) {
     console.warn('Error adding booking to Firestore:', err);
     throw err;
@@ -202,7 +213,8 @@ export async function addBookingToFirestore(booking: Booking): Promise<void> {
 export async function updateBookingInFirestore(bookingId: string, updates: Partial<Booking>): Promise<void> {
   try {
     const ref = doc(db, BOOKINGS_COLLECTION, bookingId);
-    await updateDoc(ref, updates);
+    const cleanUpdates = sanitizeFirestoreData(updates);
+    await updateDoc(ref, cleanUpdates);
   } catch (err) {
     console.warn('Error updating booking in Firestore:', err);
     throw err;

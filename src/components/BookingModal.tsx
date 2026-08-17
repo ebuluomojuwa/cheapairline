@@ -157,6 +157,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [resendSuccessMsg, setResendSuccessMsg] = useState<string | null>(null);
   const [showEmailPreviewModal, setShowEmailPreviewModal] = useState<boolean>(false);
   const [emailCopied, setEmailCopied] = useState<boolean>(false);
+  const [etherealPreviewUrl, setEtherealPreviewUrl] = useState<string | null>(null);
 
   // Super Admin Manual Price Input State (When flight is booked)
   const isSuperAdmin = currentUser?.role === 'superadmin' || isSuperAdminEmail(currentUser?.email);
@@ -262,15 +263,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
   };
 
-  const handleResendEmail = async (overrideEmail?: string) => {
+  const handleResendEmail = async (overrideEmail?: string | React.MouseEvent | unknown) => {
     if (!issuedBooking) return;
-    const recipient = overrideEmail || customDeliveryEmail.trim() || issuedBooking.autoEmailSentTo || issuedBooking.passenger.email;
+    const targetOverride = typeof overrideEmail === 'string' ? overrideEmail.trim() : '';
+    const recipient = targetOverride || customDeliveryEmail.trim() || issuedBooking.autoEmailSentTo || issuedBooking.passenger.email;
     setIsResendingEmail(true);
 
     const result = await sendTicketEmail(issuedBooking, recipient);
     setIsResendingEmail(false);
 
     if (result.success) {
+      if (result.previewUrl) {
+        setEtherealPreviewUrl(result.previewUrl);
+      }
       setResendSuccessMsg(`Official e-Ticket successfully dispatched to ${recipient}!`);
     } else {
       setResendSuccessMsg(`Email dispatch note: ${result.error || 'Server processed email payload.'}`);
@@ -278,8 +283,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setTimeout(() => setResendSuccessMsg(null), 6000);
   };
 
-  const getMailtoUrl = (bkg: Booking, recipientEmail?: string) => {
-    const target = recipientEmail || customDeliveryEmail.trim() || bkg.autoEmailSentTo || bkg.passenger.email;
+  const getMailtoUrl = (bkg: Booking, recipientEmail?: string | React.MouseEvent | unknown) => {
+    const targetOverride = typeof recipientEmail === 'string' ? recipientEmail.trim() : '';
+    const target = targetOverride || customDeliveryEmail.trim() || bkg.autoEmailSentTo || bkg.passenger.email;
     const subject = encodeURIComponent(`Your American Airlines e-Ticket Receipt & Boarding Pass [Flight ${bkg.flightNumber} - PNR ${bkg.confirmationCode}]`);
     
     const manifest = (bkg.passengers || [bkg.passenger]).map((p, i) =>
@@ -441,7 +447,7 @@ Total Paid: $${bkg.pricePaid}
       seats: passengerSeats.map((s) => s?.seatNumber || '').filter(Boolean),
       passengerCount,
       isFamilyBooking,
-      groupName: groupName.trim() || (isFamilyBooking ? `${leadPass.fullName.split(' ').pop()} Family` : undefined),
+      groupName: groupName.trim() ? groupName.trim() : (isFamilyBooking ? `${leadPass.fullName.split(' ').pop()} Family` : ''),
       bookingDate: new Date().toISOString(),
       status: 'Confirmed',
       pricePaid: finalPrice,
@@ -455,6 +461,9 @@ Total Paid: $${bkg.pricePaid}
     if (autoSendEmail) {
       sendTicketEmail(newBooking, targetEmail).then((res) => {
         if (res.success) {
+          if (res.previewUrl) {
+            setEtherealPreviewUrl(res.previewUrl);
+          }
           setResendSuccessMsg(`Official e-Ticket & Boarding Pass automatically sent to ${targetEmail}!`);
         } else {
           setResendSuccessMsg(`Auto-dispatch note: ${res.error || 'Server logged email dispatch.'}`);
@@ -478,49 +487,49 @@ Total Paid: $${bkg.pricePaid}
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-6 max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-2 sm:my-6 max-h-[94vh] flex flex-col">
         {/* Modal Header */}
-        <div className="bg-gradient-to-r from-[#001E42] via-[#002D62] to-[#00152E] px-6 py-4 text-white flex items-center justify-between border-b border-slate-800">
-          <div className="flex items-center gap-3">
+        <div className="bg-gradient-to-r from-[#001E42] via-[#002D62] to-[#00152E] px-4 sm:px-6 py-3 sm:py-4 text-white flex items-center justify-between border-b border-slate-800">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <AmericanAirlinesLogo size="sm" variant="dark-bg" />
-            <div className="h-6 w-px bg-slate-700" />
-            <div>
-              <h3 className="font-black text-base sm:text-lg">
-                Book Flight {flight.flightNumber} ({flight.origin.code} ➔ {flight.destination.code})
+            <div className="h-5 sm:h-6 w-px bg-slate-700 shrink-0" />
+            <div className="min-w-0">
+              <h3 className="font-black text-sm sm:text-lg truncate">
+                Flight {flight.flightNumber} ({flight.origin.code} ➔ {flight.destination.code})
               </h3>
-              <p className="text-xs text-slate-300">{flight.airline} • {flight.aircraft}</p>
+              <p className="text-[10px] sm:text-xs text-slate-300 truncate">{flight.airline} • {flight.aircraft}</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition"
+            className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition shrink-0 ml-2 min-h-[36px] min-w-[36px] flex items-center justify-center"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Step Indicator */}
-        <div className="bg-slate-100 dark:bg-slate-800/90 px-6 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-around text-xs font-bold text-slate-500 dark:text-slate-400">
-          <div className={`flex items-center gap-1.5 ${step === 'seat' ? 'text-[#0078D2] dark:text-sky-400' : step !== 'seat' ? 'text-emerald-700 dark:text-emerald-400' : ''}`}>
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 'seat' ? 'bg-[#0078D2] text-white' : step !== 'seat' ? 'bg-emerald-600 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>1</span>
-            Seat Selection
+        <div className="bg-slate-100 dark:bg-slate-800/90 px-3 sm:px-6 py-2.5 sm:py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-around text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400">
+          <div className={`flex items-center gap-1 sm:gap-1.5 ${step === 'seat' ? 'text-[#0078D2] dark:text-sky-400' : step !== 'seat' ? 'text-emerald-700 dark:text-emerald-400' : ''}`}>
+            <span className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] ${step === 'seat' ? 'bg-[#0078D2] text-white' : step !== 'seat' ? 'bg-emerald-600 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>1</span>
+            <span className="truncate">Seats</span>
           </div>
-          <ArrowRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600" />
-          <div className={`flex items-center gap-1.5 ${step === 'passenger' ? 'text-[#0078D2] dark:text-sky-400' : ['payment', 'confirmation'].includes(step) ? 'text-emerald-700 dark:text-emerald-400' : ''}`}>
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 'passenger' ? 'bg-[#0078D2] text-white' : ['payment', 'confirmation'].includes(step) ? 'bg-emerald-600 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>2</span>
-            Passenger Profile
+          <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-300 dark:text-slate-600 shrink-0" />
+          <div className={`flex items-center gap-1 sm:gap-1.5 ${step === 'passenger' ? 'text-[#0078D2] dark:text-sky-400' : ['payment', 'confirmation'].includes(step) ? 'text-emerald-700 dark:text-emerald-400' : ''}`}>
+            <span className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] ${step === 'passenger' ? 'bg-[#0078D2] text-white' : ['payment', 'confirmation'].includes(step) ? 'bg-emerald-600 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>2</span>
+            <span className="truncate">Passenger</span>
           </div>
-          <ArrowRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600" />
-          <div className={`flex items-center gap-1.5 ${step === 'payment' ? 'text-[#0078D2] dark:text-sky-400' : step === 'confirmation' ? 'text-emerald-700 dark:text-emerald-400' : ''}`}>
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 'payment' ? 'bg-[#0078D2] text-white' : step === 'confirmation' ? 'bg-emerald-600 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>3</span>
-            Payment & Issue Ticket
+          <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-300 dark:text-slate-600 shrink-0" />
+          <div className={`flex items-center gap-1 sm:gap-1.5 ${step === 'payment' ? 'text-[#0078D2] dark:text-sky-400' : step === 'confirmation' ? 'text-emerald-700 dark:text-emerald-400' : ''}`}>
+            <span className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] ${step === 'payment' ? 'bg-[#0078D2] text-white' : step === 'confirmation' ? 'bg-emerald-600 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>3</span>
+            <span className="truncate">Payment</span>
           </div>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+        <div className="p-3.5 sm:p-6 overflow-y-auto flex-1 space-y-4 sm:space-y-6">
           {/* Flight Itinerary & Airport Details Banner with Destination Input Option */}
           {step !== 'confirmation' && (
             <div className="bg-[#001E42] text-white p-4 sm:p-5 rounded-2xl border border-slate-700 shadow-md space-y-4">
@@ -1187,6 +1196,26 @@ Total Paid: $${bkg.pricePaid}
 
                         <div>
                           <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">
+                            Customer / Passenger Email Address {isLead ? '*' : '(Optional)'}
+                          </label>
+                          <div className="relative">
+                            <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input
+                              type="email"
+                              required={isLead}
+                              value={pass.email || ''}
+                              onChange={(e) => handleUpdatePassengerField(idx, 'email', e.target.value)}
+                              placeholder="customer.email@example.com"
+                              className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-sky-300 dark:border-sky-700 text-sm font-bold text-slate-900 dark:text-slate-100 dark:bg-slate-950 placeholder:text-slate-400 focus:border-[#0078D2] focus:ring-2 focus:ring-sky-100 outline-none"
+                            />
+                          </div>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-1">
+                            {isLead ? '✈️ Official e-Ticket & Boarding Pass will be automatically sent to this address upon booking.' : 'Optional direct email for this passenger.'}
+                          </span>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-1">
                             Passport Number *
                           </label>
                           <div className="relative">
@@ -1398,6 +1427,80 @@ Total Paid: $${bkg.pricePaid}
                 </div>
               )}
 
+              {/* AUTOMATED E-TICKET EMAIL DISPATCH TARGET LOG */}
+              <div className="bg-gradient-to-r from-sky-900 via-[#001E42] to-sky-950 text-white p-5 rounded-2xl border border-sky-700 shadow-xl space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-sky-800 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-xl bg-sky-500/20 text-sky-300 border border-sky-400/30 flex items-center justify-center font-black">
+                      📧
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black uppercase text-sky-300 tracking-wider">
+                        Automated e-Ticket Email Delivery Log
+                      </h4>
+                      <p className="text-[11px] text-slate-300">
+                        Confirm or update the customer email address for automatic ticket dispatch upon payment.
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-full flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    Auto-Dispatch Active
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="text-xs font-black text-sky-200 block mb-1">
+                      Customer / Passenger Target Email Address *
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-sky-400" />
+                      <input
+                        type="email"
+                        required
+                        value={passengersList[0]?.email || ''}
+                        onChange={(e) => handleUpdatePassengerField(0, 'email', e.target.value)}
+                        placeholder="customer.email@example.com"
+                        className="w-full pl-9 pr-3 py-2 rounded-xl border border-sky-500 bg-slate-900 text-xs font-bold text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-sky-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-black text-sky-200 block mb-1">
+                      Alternative Delivery Email (Optional)
+                    </label>
+                    <input
+                      type="email"
+                      value={customDeliveryEmail}
+                      onChange={(e) => setCustomDeliveryEmail(e.target.value)}
+                      placeholder="secondary.email@example.com"
+                      className="w-full px-3 py-2 rounded-xl border border-sky-700 bg-slate-900 text-xs font-bold text-slate-200 placeholder-slate-500 outline-none focus:ring-2 focus:ring-sky-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-sky-200/90 pt-1 border-t border-sky-800/80">
+                  <span>
+                    Direct Dispatch Target:{' '}
+                    <strong className="font-mono text-amber-300 font-extrabold">
+                      {customDeliveryEmail.trim() || passengersList[0]?.email || 'No email specified'}
+                    </strong>
+                  </span>
+                  <label className="flex items-center gap-1.5 cursor-pointer font-bold">
+                    <input
+                      type="checkbox"
+                      checked={autoSendEmail}
+                      onChange={(e) => setAutoSendEmail(e.target.checked)}
+                      className="rounded text-sky-500 focus:ring-sky-400"
+                    />
+                    <span>Auto-send upon completing booking</span>
+                  </label>
+                </div>
+              </div>
+
               <div className="space-y-3">
                 <label className="text-xs font-bold text-slate-700 block">Select Payment Method</label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1555,6 +1658,23 @@ Total Paid: $${bkg.pricePaid}
                     <Send className="w-3.5 h-3.5" /> Mail App
                   </a>
                 </div>
+
+                {etherealPreviewUrl && (
+                  <div className="pt-2 border-t border-slate-800 flex flex-col items-center gap-1">
+                    <a
+                      href={etherealPreviewUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full py-2 px-3 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition"
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-400" />
+                      <span>Open Live Ethereal Mail Web Inbox Preview ↗</span>
+                    </a>
+                    <span className="text-[10px] text-slate-400">
+                      (Test mode active: Click above to view the exact HTML email generated by the backend)
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Ticket Details Summary Card */}

@@ -8,8 +8,16 @@ export interface EmailSendResult {
   error?: string;
 }
 
-export async function sendTicketEmail(booking: Booking, recipientEmail: string): Promise<EmailSendResult> {
-  const target = recipientEmail.trim();
+export async function sendTicketEmail(booking: Booking, recipientEmail?: string | any): Promise<EmailSendResult> {
+  let target = '';
+  if (typeof recipientEmail === 'string') {
+    target = recipientEmail.trim();
+  } else if (booking?.autoEmailSentTo && typeof booking.autoEmailSentTo === 'string') {
+    target = booking.autoEmailSentTo.trim();
+  } else if (booking?.passenger?.email && typeof booking.passenger.email === 'string') {
+    target = booking.passenger.email.trim();
+  }
+
   if (!target || !target.includes('@')) {
     return {
       success: false,

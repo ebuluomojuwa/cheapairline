@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Booking } from '../types';
-import { Ticket, Search, User, Armchair, Plane, Printer, XCircle, Clock, Calendar, Utensils, Luggage, Award, Crown, DollarSign, Save, RefreshCw, Mail } from 'lucide-react';
+import { Ticket, Search, User, Armchair, Plane, Printer, XCircle, Clock, Calendar, Utensils, Luggage, Award, Crown, DollarSign, Save, RefreshCw, Mail, Radio } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
 import { AppUserProfile, SUPER_ADMIN_EMAIL } from '../lib/firebase';
 import { EmailTicketModal } from './EmailTicketModal';
@@ -10,6 +10,7 @@ interface MyBookingsProps {
   onViewBoardingPass: (booking: Booking) => void;
   onCancelBooking: (bookingId: string) => void;
   onInspectPassenger: (booking: Booking) => void;
+  onTrackFlight?: (flightId: string, flightNumber?: string) => void;
   currentUser?: AppUserProfile | null;
   onUpdateBookingPrice?: (bookingId: string, newPrice: number) => Promise<void> | void;
 }
@@ -19,6 +20,7 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
   onViewBoardingPass,
   onCancelBooking,
   onInspectPassenger,
+  onTrackFlight,
   currentUser,
   onUpdateBookingPrice,
 }) => {
@@ -67,18 +69,18 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-5 sm:space-y-8">
       {/* Banner */}
-      <div className="bg-gradient-to-r from-[#001E42] via-[#002D62] to-[#00152E] border border-slate-700/80 rounded-3xl p-6 sm:p-8 text-white shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-800/80 text-sky-300 border border-slate-600/60 text-xs font-bold shadow-sm">
+      <div className="bg-gradient-to-r from-[#001E42] via-[#002D62] to-[#00152E] border border-slate-700/80 rounded-2xl sm:rounded-3xl p-4 sm:p-8 text-white shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6">
+        <div className="space-y-2 sm:space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 text-sky-300 border border-slate-600/60 text-[11px] sm:text-xs font-bold shadow-sm">
             <AmericanAirlinesLogo size="sm" variant="dark-bg" />
             <span className="text-slate-400">|</span>
             <span className="flex items-center gap-1 text-emerald-400 font-extrabold">
-              <Ticket className="w-3.5 h-3.5" /> Issued Flagship® Tickets & Manifests
+              <Ticket className="w-3.5 h-3.5" /> Issued Flagship® Tickets
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+          <h1 className="text-xl sm:text-3xl font-black tracking-tight text-white">
             Manage Booked Flights & Passenger Profiles
           </h1>
           <p className="text-slate-300 text-xs sm:text-sm max-w-xl">
@@ -93,61 +95,61 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
             placeholder="Filter by seat (01A), name, ticket #..."
-            className="w-full pl-10 pr-3 py-3 rounded-xl border border-slate-600 bg-[#00152E] text-white text-xs font-medium outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20"
+            className="w-full pl-10 pr-3 py-2.5 sm:py-3 rounded-xl border border-slate-600 bg-[#00152E] text-white text-xs font-medium outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 min-h-[44px]"
           />
         </div>
       </div>
 
       {/* Bookings List */}
       {filtered.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3 shadow-md">
-          <Ticket className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto" />
-          <h3 className="font-bold text-slate-700 dark:text-slate-200 text-lg">No Bookings Found</h3>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center space-y-3 shadow-md">
+          <Ticket className="w-10 h-10 sm:w-12 sm:h-12 text-slate-300 dark:text-slate-700 mx-auto" />
+          <h3 className="font-bold text-slate-700 dark:text-slate-200 text-base sm:text-lg">No Bookings Found</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">There are no passenger bookings matching your search filter.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {filtered.map((booking) => (
             <div
               key={booking.id}
-              className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg hover:shadow-xl transition-all overflow-hidden flex flex-col justify-between"
+              className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg hover:shadow-xl transition-all overflow-hidden flex flex-col justify-between"
             >
               {/* Header */}
-              <div className="bg-gradient-to-r from-[#001E42] to-[#002D62] text-white p-5 flex items-center justify-between border-b border-slate-800">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-sky-500/20 border border-sky-400/30 flex items-center justify-center font-black text-sky-300 text-sm">
+              <div className="bg-gradient-to-r from-[#001E42] to-[#002D62] text-white p-4 sm:p-5 flex items-center justify-between border-b border-slate-800">
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-sky-500/20 border border-sky-400/30 flex items-center justify-center font-black text-sky-300 text-xs sm:text-sm shrink-0">
                     {booking.flightNumber}
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-sm text-white">{booking.airline}</h3>
-                    <p className="text-[11px] text-slate-300 font-mono">{booking.aircraft}</p>
+                    <h3 className="font-extrabold text-xs sm:text-sm text-white">{booking.airline}</h3>
+                    <p className="text-[10px] sm:text-[11px] text-slate-300 font-mono">{booking.aircraft}</p>
                   </div>
                 </div>
 
                 <div className="text-right">
-                  <span className="text-2xl font-black font-mono text-amber-400 flex items-center justify-end gap-1">
-                    <Armchair className="w-4 h-4 text-amber-400" />
+                  <span className="text-xl sm:text-2xl font-black font-mono text-amber-400 flex items-center justify-end gap-1">
+                    <Armchair className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
                     {booking.seatNumber}
                   </span>
-                  <span className="text-[10px] text-slate-300 font-mono block">Ticket: {booking.ticketNumber}</span>
+                  <span className="text-[9px] sm:text-[10px] text-slate-300 font-mono block">Ticket: {booking.ticketNumber}</span>
                 </div>
               </div>
 
               {/* Body */}
-              <div className="p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
+              <div className="p-4 sm:p-5 space-y-3 sm:space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-[10px] uppercase text-slate-400 font-bold block">Lead Passenger</span>
                       {booking.passengers && booking.passengers.length > 1 && (
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300">
+                        <span className="text-[9px] sm:text-[10px] font-extrabold px-1.5 sm:px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300">
                           👨‍👩‍👧‍👦 {booking.passengers.length} Family Ticket
                         </span>
                       )}
                     </div>
                     <button
                       onClick={() => onInspectPassenger(booking)}
-                      className="text-base font-black text-slate-900 dark:text-slate-100 hover:text-[#0078D2] dark:hover:text-sky-300 transition text-left"
+                      className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100 hover:text-[#0078D2] dark:hover:text-sky-300 transition text-left truncate max-w-full block mt-0.5"
                     >
                       {booking.passenger.fullName}
                     </button>
@@ -163,44 +165,44 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
                     )}
                   </div>
 
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-extrabold border border-emerald-200 dark:border-emerald-800">
+                  <span className="text-[10px] sm:text-xs px-2 sm:px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-extrabold border border-emerald-200 dark:border-emerald-800 shrink-0">
                     {booking.status}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 text-xs">
+                <div className="grid grid-cols-2 gap-2.5 sm:gap-3 bg-slate-50 dark:bg-slate-800/50 p-2.5 sm:p-3 rounded-2xl border border-slate-100 dark:border-slate-800 text-xs">
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Route</span>
+                    <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-bold block">Route</span>
                     <span className="font-black text-slate-800 dark:text-slate-200">{booking.origin.code} ➔ {booking.destination.code}</span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block">{booking.origin.city} to {booking.destination.city}</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate">{booking.origin.city} to {booking.destination.city}</span>
                   </div>
 
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Cabin Class</span>
+                    <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-bold block">Cabin Class</span>
                     <span className="font-extrabold text-[#0078D2] dark:text-sky-300">{booking.cabinClass}</span>
                     <span className="text-[10px] text-slate-500 dark:text-slate-400 block">${booking.pricePaid} Paid</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300 font-medium">
-                  <span className="flex items-center gap-1">
-                    <Utensils className="w-3.5 h-3.5 text-amber-500" />
-                    {booking.passenger.mealPreference}
+                <div className="flex items-center justify-between text-[11px] sm:text-xs text-slate-600 dark:text-slate-300 font-medium">
+                  <span className="flex items-center gap-1 truncate">
+                    <Utensils className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span className="truncate">{booking.passenger.mealPreference}</span>
                   </span>
-                  <span className="flex items-center gap-1">
-                    <Luggage className="w-3.5 h-3.5 text-sky-500" />
+                  <span className="flex items-center gap-1 shrink-0">
+                    <Luggage className="w-3.5 h-3.5 text-sky-500 shrink-0" />
                     {booking.passenger.baggageCount} Bag(s)
                   </span>
                 </div>
 
                 {/* Super Admin Price Input (Post-booking override) */}
                 {isSuperAdmin && onUpdateBookingPrice && (
-                  <div className="bg-amber-50 dark:bg-amber-950/40 p-3 rounded-2xl border border-amber-200 dark:border-amber-800 space-y-2">
+                  <div className="bg-amber-50 dark:bg-amber-950/40 p-2.5 sm:p-3 rounded-2xl border border-amber-200 dark:border-amber-800 space-y-2">
                     <div className="flex items-center justify-between text-[10px] font-black uppercase text-amber-800 dark:text-amber-300 tracking-wider">
-                      <span className="flex items-center gap-1">
-                        <Crown className="w-3.5 h-3.5 text-amber-500" /> Super Admin Booked Ticket Price Input
+                      <span className="flex items-center gap-1 truncate">
+                        <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" /> Price Override
                       </span>
-                      <span>Paid: ${booking.pricePaid}</span>
+                      <span className="shrink-0">Paid: ${booking.pricePaid}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="relative flex-1">
@@ -214,21 +216,21 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
                             setEditingPriceMap((prev) => ({ ...prev, [booking.id]: val }));
                           }}
                           placeholder="Manual Price"
-                          className="w-full pl-6 pr-2 py-1.5 rounded-xl border border-amber-300 dark:border-amber-700 text-xs font-black text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 outline-none focus:ring-1 focus:ring-amber-500"
+                          className="w-full pl-6 pr-2 py-1.5 rounded-xl border border-amber-300 dark:border-amber-700 text-xs font-black text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 outline-none focus:ring-1 focus:ring-amber-500 min-h-[38px]"
                         />
                       </div>
                       <button
                         type="button"
                         disabled={updatingBookingId === booking.id}
                         onClick={() => handleSavePrice(booking)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-3 py-1.5 rounded-xl transition flex items-center gap-1 shadow-sm shrink-0"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-3 py-1.5 rounded-xl transition flex items-center gap-1 shadow-sm shrink-0 min-h-[38px]"
                       >
                         {updatingBookingId === booking.id ? (
                           <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                         ) : (
                           <Save className="w-3.5 h-3.5" />
                         )}
-                        <span>Save Price</span>
+                        <span>Save</span>
                       </button>
                     </div>
                   </div>
@@ -236,17 +238,29 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
               </div>
 
               {/* Footer Actions */}
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-2">
+              <div className="p-3 sm:p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
                 <button
                   onClick={() => onViewBoardingPass(booking)}
-                  className="flex-1 bg-[#0078D2] hover:bg-[#0060A9] text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-sky-600/20"
+                  className="bg-[#0078D2] hover:bg-[#0060A9] text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-sky-600/20 min-h-[40px]"
                 >
-                  <Printer className="w-3.5 h-3.5 text-sky-200" /> Boarding Pass
+                  <Printer className="w-3.5 h-3.5 text-sky-200" />
+                  <span>Boarding Pass</span>
                 </button>
+
+                {onTrackFlight && (
+                  <button
+                    onClick={() => onTrackFlight(booking.flightId, booking.flightNumber)}
+                    className="bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-sky-300 dark:text-sky-200 font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition border border-slate-700 min-h-[40px]"
+                    title="Track Live Flight Telemetry & Radar"
+                  >
+                    <Radio className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Track Flight</span>
+                  </button>
+                )}
 
                 <button
                   onClick={() => setEmailModalBooking(booking)}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center gap-1.5 transition shadow-md shadow-emerald-600/20"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-emerald-600/20 min-h-[40px]"
                   title="Send e-Ticket to Email"
                 >
                   <Mail className="w-3.5 h-3.5 text-white" />
@@ -255,7 +269,7 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
 
                 <button
                   onClick={() => onInspectPassenger(booking)}
-                  className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-bold py-2.5 px-3 rounded-xl text-xs transition"
+                  className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-bold py-2.5 px-3 rounded-xl text-xs transition flex items-center justify-center min-h-[40px]"
                 >
                   Inspect
                 </button>
@@ -266,7 +280,7 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
                       onCancelBooking(booking.id);
                     }
                   }}
-                  className="bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 font-bold py-2.5 px-3 rounded-xl text-xs transition border border-rose-200 dark:border-rose-800/60 flex items-center gap-1"
+                  className="bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 font-bold py-2.5 px-3 rounded-xl text-xs transition border border-rose-200 dark:border-rose-800/60 flex items-center justify-center gap-1 min-h-[40px]"
                   title="Cancel Ticket"
                 >
                   <XCircle className="w-3.5 h-3.5" />

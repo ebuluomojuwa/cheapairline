@@ -256,7 +256,7 @@ app.post("/api/send-ticket-email", async (req, res) => {
     `;
 
     const transporter = await getTransporter();
-    const fromAddress = process.env.SMTP_FROM || '"American Airlines Ticketing" <no-reply@aa.com>';
+    const fromAddress = process.env.SMTP_FROM || '"American Airlines Ticketing" <ebulupaulboyld@gmail.com>';
 
     console.log(`[Email Service] Attempting to dispatch e-Ticket email to: ${recipientEmail}...`);
 
