@@ -1,0 +1,170 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 200" width="100%" height="100%">
+  <defs>
+    <!-- 3D Silver Metallic Gradients -->
+    <linearGradient id="silver1Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="20%" stop-color="#E2E7ED" />
+      <stop offset="60%" stop-color="#B0B9C6" />
+      <stop offset="100%" stop-color="#808B9B" />
+    </linearGradient>
+
+    <linearGradient id="silverBevel" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#697586" />
+      <stop offset="50%" stop-color="#A2ACB9" />
+      <stop offset="100%" stop-color="#E9EEF4" />
+    </linearGradient>
+
+    <linearGradient id="silverRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="25%" stop-color="#D9E0E8" />
+      <stop offset="70%" stop-color="#9BA6B5" />
+      <stop offset="100%" stop-color="#727E8F" />
+    </linearGradient>
+
+    <!-- AA Iconic Blue Ribbon Gradient -->
+    <linearGradient id="aaBlueWing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00A9E0" />
+      <stop offset="45%" stop-color="#0078D2" />
+      <stop offset="100%" stop-color="#004C97" />
+    </linearGradient>
+
+    <!-- AA Iconic Red Ribbon Gradient -->
+    <linearGradient id="aaRedWing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ED1C24" />
+      <stop offset="60%" stop-color="#C41230" />
+      <stop offset="100%" stop-color="#8A001A" />
+    </linearGradient>
+
+    <!-- Eagle Beak Shading -->
+    <linearGradient id="eagleBeakShade" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="60%" stop-color="#E1E6EB" />
+      <stop offset="100%" stop-color="#BDC6D1" />
+    </linearGradient>
+
+    <!-- Drop Shadow Filter for 3D Layering -->
+    <filter id="logoShadow" x="-10%" y="-10%" width="125%" height="125%">
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-opacity="0.25" flood-color="#000000" />
+    </filter>
+  </defs>
+
+  <g filter="url(#logoShadow)">
+    <!-- ==================== "1" DIGIT ==================== -->
+    <!-- Beveled Upper Hook of the "1" -->
+    <path
+      d="M 12 65 
+         L 52 2 
+         L 62 2 
+         L 32 60 
+         C 28 67 22 68 12 65 Z"
+      fill="url(#silverBevel)"
+    />
+    
+    <!-- Main Body Pillar of the "1" -->
+    <path
+      d="M 50 4 
+         C 50 4 58 4 60 4 
+         L 60 196 
+         L 16 196 
+         L 16 70 
+         L 44 26 
+         C 48 18 50 10 50 4 Z"
+      fill="url(#silver1Grad)"
+    />
+
+    <!-- ==================== FIRST "0" DIGIT ==================== -->
+    <path
+      d="M 160 4 
+         C 214 4 252 46 252 100 
+         C 252 154 214 196 160 196 
+         C 106 196 68 154 68 100 
+         C 68 46 106 4 160 4 Z
+         M 160 38 
+         C 126 38 102 66 102 100 
+         C 102 134 126 162 160 162 
+         C 194 162 218 134 218 100 
+         C 218 66 194 38 160 38 Z"
+      fill="url(#silverRingGrad)"
+    />
+
+    <!-- ==================== SECOND "0" DIGIT ==================== -->
+    <path
+      d="M 336 4 
+         C 390 4 428 46 428 100 
+         C 428 154 390 196 336 196 
+         C 282 196 244 154 244 100 
+         C 244 46 282 4 336 4 Z
+         M 336 38 
+         C 302 38 278 66 278 100 
+         C 278 134 302 162 336 162 
+         C 370 162 394 134 394 100 
+         C 394 66 370 38 336 38 Z"
+      fill="url(#silverRingGrad)"
+    />
+
+    <!-- ==================== AA FLIGHT SYMBOL / EAGLE RIBBON ==================== -->
+    <!-- 1. AA Blue Upper Wing Flight Ribbon (Sweeping up from 1st 0 into 2nd 0) -->
+    <path
+      d="M 218 100 
+         L 186 2 
+         L 236 2 
+         L 288 78 
+         C 264 78 240 86 218 100 Z"
+      fill="url(#aaBlueWing)"
+    />
+
+    <!-- 2. Stylized Eagle Head / Beak White & Silver Notch -->
+    <path
+      d="M 288 78 
+         C 262 82 248 100 248 128 
+         C 268 98 296 98 334 98 
+         L 336 102 
+         C 300 102 278 108 266 138 
+         L 248 128 
+         C 248 106 264 86 288 78 Z"
+      fill="url(#eagleBeakShade)"
+    />
+
+    <!-- 3. Eagle Head Feather Highlight -->
+    <path
+      d="M 286 78 
+         C 260 84 250 102 248 126 
+         C 256 108 274 94 304 92 
+         L 334 98 
+         C 316 92 298 84 286 78 Z"
+      fill="#FFFFFF"
+      opacity="0.95"
+    />
+
+    <!-- 4. AA Red Lower Wing Flight Ribbon (Sweeping down through 2nd 0) -->
+    <path
+      d="M 270 134 
+         C 288 108 308 120 324 144 
+         L 384 196 
+         L 334 196 
+         L 270 134 Z"
+      fill="url(#aaRedWing)"
+    />
+
+    <!-- 5. Red Wing Metallic Curve Accent -->
+    <path
+      d="M 270 134 
+         C 292 112 316 130 334 154 
+         L 366 196 
+         L 334 196 
+         L 270 134 Z"
+      fill="#ED1C24"
+    />
+
+    <!-- ==================== "SM" SERVICE MARK ==================== -->
+    <text 
+      x="426" 
+      y="194" 
+      font-family="system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif" 
+      font-size="12" 
+      font-weight="bold" 
+      fill="#697586"
+      text-anchor="start"
+    >SM</text>
+  </g>
+</svg>

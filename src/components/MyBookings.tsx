@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Booking } from '../types';
-import { Ticket, Search, User, Armchair, Plane, Printer, XCircle, Clock, Calendar, Utensils, Luggage, Award, Crown, DollarSign, Save, RefreshCw, Mail, Radio } from 'lucide-react';
+import { Ticket, Search, User, Armchair, Plane, Printer, XCircle, Clock, Calendar, Utensils, Luggage, Award, Crown, DollarSign, Save, RefreshCw, Mail, Radio, Share2, MessageCircle } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
 import { AppUserProfile, SUPER_ADMIN_EMAIL } from '../lib/firebase';
-import { EmailTicketModal } from './EmailTicketModal';
+import { EmailTicketModal, ShareChannel } from './EmailTicketModal';
 
 interface MyBookingsProps {
   bookings: Booking[];
@@ -28,6 +28,7 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
   const [editingPriceMap, setEditingPriceMap] = useState<Record<string, string>>({});
   const [updatingBookingId, setUpdatingBookingId] = useState<string | null>(null);
   const [emailModalBooking, setEmailModalBooking] = useState<Booking | null>(null);
+  const [shareChannel, setShareChannel] = useState<ShareChannel>('whatsapp');
 
   const isSuperAdmin = currentUser?.role === 'superadmin' || currentUser?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
 
@@ -259,12 +260,27 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
                 )}
 
                 <button
-                  onClick={() => setEmailModalBooking(booking)}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-emerald-600/20 min-h-[40px]"
-                  title="Send e-Ticket to Email"
+                  onClick={() => {
+                    setShareChannel('whatsapp');
+                    setEmailModalBooking(booking);
+                  }}
+                  className="bg-[#25D366] hover:bg-[#1EBE5D] text-slate-950 font-black py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-sm min-h-[40px]"
+                  title="Share Ticket via WhatsApp"
                 >
-                  <Mail className="w-3.5 h-3.5 text-white" />
-                  <span>Email Ticket</span>
+                  <MessageCircle className="w-3.5 h-3.5 text-slate-950" />
+                  <span>WhatsApp</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShareChannel('email');
+                    setEmailModalBooking(booking);
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-emerald-600/20 min-h-[40px]"
+                  title="Share & Send Ticket (Email, Gmail, Twitter, Instagram)"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-white" />
+                  <span>Share / Send</span>
                 </button>
 
                 <button
@@ -296,6 +312,7 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
         booking={emailModalBooking}
         isOpen={!!emailModalBooking}
         onClose={() => setEmailModalBooking(null)}
+        defaultChannel={shareChannel}
       />
     </div>
   );

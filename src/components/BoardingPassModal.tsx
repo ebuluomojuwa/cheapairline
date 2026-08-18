@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Booking } from '../types';
-import { Plane, X, Printer, Ticket, Clock, Compass, CheckCircle2, Mail } from 'lucide-react';
+import { Plane, X, Printer, Ticket, Clock, Compass, CheckCircle2, Mail, Share2, MessageCircle } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
 import { calculateFlightDuration } from '../utils/flightCalculator';
-import { EmailTicketModal } from './EmailTicketModal';
+import { EmailTicketModal, ShareChannel } from './EmailTicketModal';
 
 interface BoardingPassModalProps {
   booking: Booking | null;
@@ -12,6 +12,7 @@ interface BoardingPassModalProps {
 
 export const BoardingPassModal: React.FC<BoardingPassModalProps> = ({ booking, onClose }) => {
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailChannel, setEmailChannel] = useState<ShareChannel>('whatsapp');
   const [activePassengerIdx, setActivePassengerIdx] = useState(0);
 
   if (!booking) return null;
@@ -36,6 +37,11 @@ export const BoardingPassModal: React.FC<BoardingPassModalProps> = ({ booking, o
   const durationStr = booking.duration || flightCalc.durationFormatted;
   const arrDate = new Date(booking.arrivalTime || flightCalc.arrivalTimeISO);
 
+  const openShare = (channel: ShareChannel = 'whatsapp') => {
+    setEmailChannel(channel);
+    setShowEmailModal(true);
+  };
+
   return (
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -49,12 +55,22 @@ export const BoardingPassModal: React.FC<BoardingPassModalProps> = ({ booking, o
             <div className="flex items-center gap-1.5 sm:gap-2">
               <button
                 type="button"
-                onClick={() => setShowEmailModal(true)}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-sm min-h-[36px]"
+                onClick={() => openShare('whatsapp')}
+                className="bg-[#25D366] hover:bg-[#1EBE5D] text-slate-950 text-[11px] sm:text-xs font-black px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-sm min-h-[36px]"
+                title="Send via WhatsApp"
               >
-                <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="hidden xs:inline">Email Ticket</span>
-                <span className="xs:hidden">Email</span>
+                <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-950" />
+                <span className="hidden xs:inline">WhatsApp</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => openShare('email')}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-sm min-h-[36px]"
+                title="Share & Send Ticket (Email, Gmail, Twitter, Instagram)"
+              >
+                <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">Share / Send</span>
+                <span className="xs:hidden">Share</span>
               </button>
               <button
                 type="button"
@@ -283,6 +299,7 @@ export const BoardingPassModal: React.FC<BoardingPassModalProps> = ({ booking, o
         booking={booking}
         isOpen={showEmailModal}
         onClose={() => setShowEmailModal(false)}
+        defaultChannel={emailChannel}
       />
     </>
   );
