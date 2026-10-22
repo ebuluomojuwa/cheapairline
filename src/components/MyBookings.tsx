@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Booking } from '../types';
+import { Booking, Flight } from '../types';
 import { Ticket, Search, User, Armchair, Plane, Printer, XCircle, Clock, Calendar, Utensils, Luggage, Award, Crown, DollarSign, Save, RefreshCw, Mail, Radio, Share2, MessageCircle } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
 import { AppUserProfile, SUPER_ADMIN_EMAIL } from '../lib/firebase';
@@ -10,7 +10,7 @@ interface MyBookingsProps {
   onViewBoardingPass: (booking: Booking) => void;
   onCancelBooking: (bookingId: string) => void;
   onInspectPassenger: (booking: Booking) => void;
-  onTrackFlight?: (flightId: string, flightNumber?: string) => void;
+  onTrackFlight?: (target: Flight | Booking | string, flightNumber?: string) => void;
   currentUser?: AppUserProfile | null;
   onUpdateBookingPrice?: (bookingId: string, newPrice: number) => Promise<void> | void;
 }
@@ -250,8 +250,8 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
 
                 {onTrackFlight && (
                   <button
-                    onClick={() => onTrackFlight(booking.flightId, booking.flightNumber)}
-                    className="bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-sky-300 dark:text-sky-200 font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition border border-slate-700 min-h-[40px]"
+                    onClick={() => onTrackFlight(booking, booking.flightNumber)}
+                    className="bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-sky-300 dark:text-sky-200 font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition border border-slate-700 min-h-[40px] cursor-pointer"
                     title="Track Live Flight Telemetry & Radar"
                   >
                     <Radio className="w-3.5 h-3.5 text-emerald-400" />

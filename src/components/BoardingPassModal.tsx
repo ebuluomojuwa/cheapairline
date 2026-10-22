@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Booking } from '../types';
+import { Booking, Flight } from '../types';
 import { Plane, X, Printer, Ticket, Clock, Compass, CheckCircle2, Mail, Share2, MessageCircle, Radio } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
 import { calculateFlightDuration } from '../utils/flightCalculator';
@@ -8,7 +8,7 @@ import { EmailTicketModal, ShareChannel } from './EmailTicketModal';
 interface BoardingPassModalProps {
   booking: Booking | null;
   onClose: () => void;
-  onTrackFlight?: (flightId: string, flightNumber?: string) => void;
+  onTrackFlight?: (target: Flight | Booking | string, flightNumber?: string) => void;
 }
 
 export const BoardingPassModal: React.FC<BoardingPassModalProps> = ({ booking, onClose, onTrackFlight }) => {
@@ -59,7 +59,7 @@ export const BoardingPassModal: React.FC<BoardingPassModalProps> = ({ booking, o
                   type="button"
                   onClick={() => {
                     onClose();
-                    onTrackFlight(booking.flightId, booking.flightNumber);
+                    onTrackFlight(booking, booking.flightNumber);
                   }}
                   className="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] sm:text-xs font-black px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-sm min-h-[36px] cursor-pointer"
                   title="Track Live Radar for this Flight"

@@ -63,7 +63,7 @@ interface BookingModalProps {
   onInspectPassenger: (booking: Booking) => void;
   currentUser?: AppUserProfile | null;
   onUpdateFlightPrice?: (flightId: string, newPrice: number) => void;
-  onTrackFlight?: (flightId: string, flightNumber?: string) => void;
+  onTrackFlight?: (target: Flight | Booking | string, flightNumber?: string) => void;
   onViewBoardingPass?: (booking: Booking) => void;
 }
 
@@ -1889,7 +1889,7 @@ Total Paid: $${bkg.pricePaid}
                     type="button"
                     onClick={() => {
                       onClose();
-                      onTrackFlight(issuedBooking.flightId, issuedBooking.flightNumber);
+                      onTrackFlight(issuedBooking, issuedBooking.flightNumber);
                     }}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-black px-6 py-3 rounded-xl transition shadow-lg shadow-emerald-700/20 flex items-center gap-2 cursor-pointer"
                   >

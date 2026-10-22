@@ -41,7 +41,7 @@ interface PassengerLookupProps {
   onViewBoardingPass: (booking: Booking) => void;
   onCancelBooking: (bookingId: string) => void;
   onApproveGatePass?: (bookingId: string) => void;
-  onTrackFlight?: (flight: Flight) => void;
+  onTrackFlight?: (target: Flight | Booking | string, flightNumber?: string) => void;
   initialQuery?: string;
 }
 
@@ -745,9 +745,13 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
                             <button
                               onClick={() => {
                                 const foundFlight = flights.find((f) => f.id === booking.flightId || f.flightNumber === booking.flightNumber);
-                                if (foundFlight) onTrackFlight(foundFlight);
+                                if (foundFlight) {
+                                  onTrackFlight(foundFlight);
+                                } else {
+                                  onTrackFlight(booking, booking.flightNumber);
+                                }
                               }}
-                              className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold flex items-center gap-1"
+                              className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
                             >
                               <Radio className="w-3 h-3" /> Track Flight
                             </button>

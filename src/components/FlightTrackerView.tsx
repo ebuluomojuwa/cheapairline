@@ -82,39 +82,66 @@ export const FlightTrackerView: React.FC<FlightTrackerViewProps> = ({
     }
   }, [initialQuery]);
 
-  // Unified list of all flights: provided flights + any flights reconstructed from active bookings
+  // Unified list of all flights: provided flights + any flights reconstructed from active bookings & local storage
   const allTrackableFlights = useMemo(() => {
     const map = new Map<string, Flight>();
     flights.forEach((f) => map.set(f.id, f));
 
-    bookings.forEach((b) => {
-      const alreadyHas = Array.from(map.values()).some(
-        (f) => f.id === b.flightId || f.flightNumber.toLowerCase() === b.flightNumber.toLowerCase()
-      );
-      if (!alreadyHas) {
-        map.set(b.flightId, {
-          id: b.flightId,
-          flightNumber: b.flightNumber,
-          airline: b.airline || 'American Airlines',
-          airlineCode: 'AA',
-          aircraft: b.aircraft || 'Boeing 787-9 Dreamliner',
-          origin: b.origin,
-          destination: b.destination,
-          departureTime: b.departureTime,
-          arrivalTime: b.arrivalTime,
-          duration: b.duration || '8h 00m',
-          price: b.pricePaid || 650,
-          totalSeats: 180,
-          availableSeats: 140,
-          terminal: b.terminal || 'T8',
-          gate: b.gate || 'B20',
-          status: 'On Time',
+    // Combine prop bookings with local storage bookings
+    const combinedBookings = [...bookings];
+    try {
+      const saved = localStorage.getItem('american_airlines_bookings');
+      if (saved) {
+        const parsed: Booking[] = JSON.parse(saved);
+        parsed.forEach((pb) => {
+          if (!combinedBookings.some((b) => b.id === pb.id)) {
+            combinedBookings.push(pb);
+          }
         });
       }
+    } catch (e) {}
+
+    combinedBookings.forEach((b) => {
+      // Always register the flight for every booking with full route fidelity
+      map.set(b.flightId, {
+        id: b.flightId,
+        flightNumber: b.flightNumber,
+        airline: b.airline || 'American Airlines',
+        airlineCode: 'AA',
+        aircraft: b.aircraft || 'Boeing 787-9 Dreamliner',
+        origin: b.origin,
+        destination: b.destination,
+        departureTime: b.departureTime,
+        arrivalTime: b.arrivalTime,
+        duration: b.duration || '8h 00m',
+        price: b.pricePaid || 650,
+        totalSeats: 180,
+        availableSeats: 140,
+        terminal: b.terminal || 'T8',
+        gate: b.gate || 'B20',
+        status: 'On Time',
+      });
     });
 
     return Array.from(map.values());
   }, [flights, bookings]);
+
+  // Combined active bookings for search matching (state + localStorage)
+  const allActiveBookings = useMemo(() => {
+    const combined = [...bookings];
+    try {
+      const saved = localStorage.getItem('american_airlines_bookings');
+      if (saved) {
+        const parsed: Booking[] = JSON.parse(saved);
+        parsed.forEach((pb) => {
+          if (!combined.some((b) => b.id === pb.id)) {
+            combined.push(pb);
+          }
+        });
+      }
+    } catch (e) {}
+    return combined;
+  }, [bookings]);
 
   // Filtered flights based on search query
   const searchResults = useMemo(() => {
@@ -127,12 +154,15 @@ export const FlightTrackerView: React.FC<FlightTrackerViewProps> = ({
     return allTrackableFlights.filter((f) => {
       const cleanFlightNum = f.flightNumber.toLowerCase().replace(/[\s-]/g, '');
       const flightNumWithoutAA = cleanFlightNum.replace(/^aa/, '');
+      const cleanQWithoutAA = cleanQ.replace(/^aa/, '');
+
       const flightMatches =
         cleanFlightNum.includes(cleanQ) ||
+        cleanQ.includes(cleanFlightNum) ||
         f.flightNumber.toLowerCase().includes(q) ||
         f.id.toLowerCase() === q ||
         f.id.toLowerCase().includes(cleanQ) ||
-        (cleanQ.length >= 2 && flightNumWithoutAA === cleanQ);
+        (cleanQWithoutAA.length >= 1 && (flightNumWithoutAA.includes(cleanQWithoutAA) || cleanQWithoutAA.includes(flightNumWithoutAA)));
 
       const originMatches =
         f.origin.code.toLowerCase().includes(q) ||
@@ -149,7 +179,7 @@ export const FlightTrackerView: React.FC<FlightTrackerViewProps> = ({
       const aircraftMatches = f.aircraft.toLowerCase().includes(q);
 
       // Check if query matches any passenger ticket/name/PNR on this flight
-      const bookingMatches = bookings.some((b) => {
+      const bookingMatches = allActiveBookings.some((b) => {
         const isThisFlight =
           b.flightId === f.id ||
           b.flightNumber.toLowerCase() === f.flightNumber.toLowerCase() ||
@@ -180,7 +210,7 @@ export const FlightTrackerView: React.FC<FlightTrackerViewProps> = ({
 
       return flightMatches || originMatches || destMatches || aircraftMatches || bookingMatches;
     });
-  }, [allTrackableFlights, bookings, searchQuery]);
+  }, [allTrackableFlights, allActiveBookings, searchQuery]);
 
   // Automatically select first matching flight if current selection isn't in filtered list
   useEffect(() => {
@@ -538,42 +568,70 @@ export const FlightTrackerView: React.FC<FlightTrackerViewProps> = ({
         </div>
       </div>
 
-      {/* No Record Found State */}
+      {/* No Record Found State with Instant Booking Recovery */}
       {searchResults.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-12 border border-dashed border-slate-300 dark:border-slate-800 shadow-md text-center space-y-4">
-          <div className="w-14 h-14 bg-amber-100 dark:bg-amber-950/80 rounded-2xl flex items-center justify-center mx-auto text-amber-500">
-            <AlertCircle className="w-7 h-7" />
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-10 border border-slate-300 dark:border-slate-800 shadow-xl text-center space-y-6">
+          <div className="w-16 h-16 bg-sky-100 dark:bg-sky-950/80 rounded-2xl flex items-center justify-center mx-auto text-[#0078D2]">
+            <Radio className="w-8 h-8 text-[#0078D2] animate-pulse" />
           </div>
-          <div className="space-y-1.5">
-            <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100">
-              No Flight Radar Record Found for "{searchQuery}"
+
+          <div className="space-y-2">
+            <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100">
+              Locate Flight for "{searchQuery}"
             </h3>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-              We couldn't locate an active flight route matching your search. Check for typos or track one of your booked reservations below.
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-lg mx-auto leading-relaxed">
+              Select one of your booked reservations below to immediately view live radar telemetry, or clear the search filter to browse all scheduled routes.
             </p>
           </div>
 
-          <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
+          {/* Quick 1-Click Track Booked Flights Bar */}
+          {allActiveBookings.length > 0 && (
+            <div className="bg-[#001E42] text-white p-4 sm:p-5 rounded-2xl border border-slate-700 max-w-2xl mx-auto space-y-3 text-left">
+              <div className="flex items-center justify-between border-b border-slate-700/80 pb-2">
+                <span className="text-xs font-black text-emerald-400 flex items-center gap-1.5 uppercase tracking-wider">
+                  <Ticket className="w-4 h-4 text-emerald-400" /> Your Active Booked Flights ({allActiveBookings.length}):
+                </span>
+                <span className="text-[10px] text-slate-300 font-mono">Click to track on radar</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {allActiveBookings.map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedFlightId(b.flightId);
+                      setSearchQuery(b.flightNumber);
+                    }}
+                    className="p-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500 transition text-left flex items-center justify-between group cursor-pointer"
+                  >
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-black text-sky-400 text-sm">{b.flightNumber}</span>
+                        <span className="text-[11px] text-slate-300">({b.origin.code} ➔ {b.destination.code})</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate">
+                        Passenger: <strong className="text-white">{b.passenger.fullName}</strong> • Seat: <strong className="text-amber-300 font-mono">{b.seatNumber}</strong>
+                      </div>
+                    </div>
+                    <span className="text-xs font-black text-emerald-400 group-hover:translate-x-0.5 transition flex items-center gap-1">
+                      Track <ArrowRight className="w-3.5 h-3.5" />
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="bg-[#0078D2] hover:bg-[#0060A9] text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm cursor-pointer"
+              className="bg-[#0078D2] hover:bg-[#0060A9] text-white text-xs sm:text-sm font-black px-6 py-3 rounded-xl transition shadow-md shadow-sky-600/20 cursor-pointer flex items-center gap-2"
             >
-              Show All Flights ({allTrackableFlights.length})
+              <Plane className="w-4 h-4" />
+              <span>Show All Scheduled Flights ({allTrackableFlights.length})</span>
             </button>
-            {bookings.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedFlightId(bookings[0].flightId);
-                  setSearchQuery(bookings[0].flightNumber);
-                }}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm flex items-center gap-1.5 cursor-pointer"
-              >
-                <Radio className="w-3.5 h-3.5 text-white" />
-                <span>Track Your Booked Flight ({bookings[0].flightNumber})</span>
-              </button>
-            )}
           </div>
         </div>
       ) : activeFlight && (

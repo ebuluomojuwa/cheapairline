@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Flight, Booking, Seat, AppUser, UserRole } from './types';
-import { INITIAL_FLIGHTS } from './data/mockData';
+import { INITIAL_FLIGHTS, INITIAL_BOOKINGS } from './data/mockData';
 import { Header } from './components/Header';
 import { FlightSearch } from './components/FlightSearch';
 import { FlightTrackerView } from './components/FlightTrackerView';
@@ -89,8 +89,14 @@ export default function App() {
     }
   }, [isDarkMode]);
 
-  // Real-time Firestore Bookings State
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  // Real-time Firestore Bookings State with instant localStorage fallback
+  const [bookings, setBookings] = useState<Booking[]>(() => {
+    try {
+      const saved = localStorage.getItem('american_airlines_bookings');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return INITIAL_BOOKINGS;
+  });
 
   const superAdminBookingsCount = useMemo(() => {
     return bookings.filter((b) => 
@@ -104,7 +110,21 @@ export default function App() {
   useEffect(() => {
     // Subscribe to Firestore bookings
     const unsub = subscribeBookings((list) => {
-      setBookings(list);
+      // Merge incoming Firestore list with any local bookings so freshly booked tickets are never lost
+      setBookings((prev) => {
+        const map = new Map<string, Booking>();
+        // First add all incoming from Firestore
+        list.forEach((b) => map.set(b.id, b));
+        // Keep any recent local ones not yet returned by Firestore
+        prev.forEach((b) => {
+          if (!map.has(b.id)) map.set(b.id, b);
+        });
+        const combined = Array.from(map.values());
+        try {
+          localStorage.setItem('american_airlines_bookings', JSON.stringify(combined));
+        } catch (e) {}
+        return combined;
+      });
 
       // Auto-reconstruct and merge any flights from bookings that aren't yet in flights state
       setFlights((prevFlights) => {
@@ -301,56 +321,86 @@ export default function App() {
   const [trackerFlightId, setTrackerFlightId] = useState<string>('fl-101');
   const [trackerQuery, setTrackerQuery] = useState<string>('');
 
-  const handleTrackFlight = (flightOrId: Flight | string, queryParam?: string) => {
+  const handleTrackFlight = (flightOrBookingOrId: Flight | Booking | string, queryParam?: string) => {
     let targetFlightId = '';
     let targetQuery = '';
+    let targetFlightObj: Flight | null = null;
 
-    if (typeof flightOrId === 'object' && flightOrId !== null) {
-      targetFlightId = flightOrId.id;
-      targetQuery = queryParam || flightOrId.flightNumber;
-
-      // Ensure this flight is saved into flights state so tracker finds it
-      setFlights((prev) => {
-        if (!prev.some((f) => f.id === flightOrId.id || f.flightNumber === flightOrId.flightNumber)) {
-          const updated = [flightOrId, ...prev];
-          try {
-            localStorage.setItem('american_airlines_flights', JSON.stringify(updated));
-          } catch (e) {}
-          return updated;
-        }
-        return prev;
-      });
-    } else if (typeof flightOrId === 'string') {
-      const cleanTarget = flightOrId.trim();
+    if (typeof flightOrBookingOrId === 'object' && flightOrBookingOrId !== null) {
+      if ('ticketNumber' in flightOrBookingOrId) {
+        // It's a Booking object
+        const b = flightOrBookingOrId as Booking;
+        targetFlightId = b.flightId;
+        targetQuery = queryParam || b.flightNumber;
+        targetFlightObj = {
+          id: b.flightId,
+          flightNumber: b.flightNumber,
+          airline: b.airline || 'American Airlines',
+          airlineCode: 'AA',
+          aircraft: b.aircraft || 'Boeing 787-9 Dreamliner',
+          origin: b.origin,
+          destination: b.destination,
+          departureTime: b.departureTime,
+          arrivalTime: b.arrivalTime,
+          duration: b.duration || '8h 00m',
+          price: b.pricePaid || 650,
+          totalSeats: 180,
+          availableSeats: 140,
+          terminal: b.terminal || 'T8',
+          gate: b.gate || 'B20',
+          status: 'On Time',
+        };
+      } else {
+        // It's a Flight object
+        const f = flightOrBookingOrId as Flight;
+        targetFlightId = f.id;
+        targetQuery = queryParam || f.flightNumber;
+        targetFlightObj = f;
+      }
+    } else if (typeof flightOrBookingOrId === 'string') {
+      const cleanTarget = flightOrBookingOrId.trim();
+      const cleanTargetNoSpace = cleanTarget.toLowerCase().replace(/[\s-]/g, '');
 
       // Check existing flights
       const foundInFlights = flights.find(
         (f) =>
           f.id === cleanTarget ||
           f.flightNumber.toLowerCase() === cleanTarget.toLowerCase() ||
-          f.flightNumber.toLowerCase().replace(/[\s-]/g, '') === cleanTarget.toLowerCase().replace(/[\s-]/g, '')
+          f.flightNumber.toLowerCase().replace(/[\s-]/g, '') === cleanTargetNoSpace
       );
 
       if (foundInFlights) {
         targetFlightId = foundInFlights.id;
         targetQuery = queryParam || foundInFlights.flightNumber;
+        targetFlightObj = foundInFlights;
       } else {
-        // Check bookings
-        const foundInBooking = bookings.find(
+        // Check bookings from current state AND localStorage
+        let allKnownBookings = [...bookings];
+        try {
+          const cached = localStorage.getItem('american_airlines_bookings');
+          if (cached) {
+            const parsed: Booking[] = JSON.parse(cached);
+            allKnownBookings = [...allKnownBookings, ...parsed];
+          }
+        } catch (e) {}
+
+        const foundInBooking = allKnownBookings.find(
           (b) =>
             b.flightId === cleanTarget ||
             b.flightNumber.toLowerCase() === cleanTarget.toLowerCase() ||
-            b.flightNumber.toLowerCase().replace(/[\s-]/g, '') === cleanTarget.toLowerCase().replace(/[\s-]/g, '') ||
+            b.flightNumber.toLowerCase().replace(/[\s-]/g, '') === cleanTargetNoSpace ||
             b.ticketNumber.toLowerCase().includes(cleanTarget.toLowerCase()) ||
-            b.confirmationCode.toLowerCase() === cleanTarget.toLowerCase()
+            b.ticketNumber.toLowerCase().replace(/[\s-]/g, '').includes(cleanTargetNoSpace) ||
+            b.confirmationCode.toLowerCase() === cleanTarget.toLowerCase() ||
+            b.confirmationCode.toLowerCase().replace(/[\s-]/g, '') === cleanTargetNoSpace ||
+            b.passenger.fullName.toLowerCase().includes(cleanTarget.toLowerCase())
         );
 
         if (foundInBooking) {
           targetFlightId = foundInBooking.flightId;
           targetQuery = queryParam || foundInBooking.flightNumber;
 
-          // Reconstruct flight and ensure it exists in flights
-          const reconstructedFlight: Flight = {
+          targetFlightObj = {
             id: foundInBooking.flightId,
             flightNumber: foundInBooking.flightNumber,
             airline: foundInBooking.airline || 'American Airlines',
@@ -368,22 +418,54 @@ export default function App() {
             gate: foundInBooking.gate || 'B20',
             status: 'On Time',
           };
-
-          setFlights((prev) => {
-            if (!prev.some((f) => f.id === reconstructedFlight.id || f.flightNumber === reconstructedFlight.flightNumber)) {
-              const updated = [reconstructedFlight, ...prev];
-              try {
-                localStorage.setItem('american_airlines_flights', JSON.stringify(updated));
-              } catch (e) {}
-              return updated;
-            }
-            return prev;
-          });
         } else {
-          targetFlightId = flights[0]?.id || 'fl-101';
-          targetQuery = queryParam || cleanTarget;
+          // If query looks like a flight number, synthesize flight so radar never shows a dead end
+          const numMatch = cleanTarget.match(/(?:AA[-\s]?)?(\d+)/i);
+          if (numMatch) {
+            const num = numMatch[1];
+            const synthNum = `AA-${num}`;
+            targetFlightId = `fl-track-${num}`;
+            targetQuery = queryParam || synthNum;
+            targetFlightObj = {
+              id: targetFlightId,
+              flightNumber: synthNum,
+              airline: 'American Airlines',
+              airlineCode: 'AA',
+              aircraft: 'Boeing 787-9 Dreamliner',
+              origin: { code: 'DFW', city: 'Dallas / Fort Worth', airport: 'Dallas/Fort Worth International', country: 'United States', state: 'Texas' },
+              destination: { code: 'LHR', city: 'London', airport: 'Heathrow Airport', country: 'United Kingdom' },
+              departureTime: new Date().toISOString(),
+              arrivalTime: new Date(Date.now() + 8 * 3600 * 1000).toISOString(),
+              duration: '8h 15m',
+              price: 650,
+              totalSeats: 180,
+              availableSeats: 140,
+              terminal: 'T8',
+              gate: 'B22',
+              status: 'On Time',
+            };
+          } else {
+            targetFlightId = flights[0]?.id || 'fl-101';
+            targetQuery = '';
+          }
         }
       }
+    }
+
+    // Ensure the tracked flight is immediately registered into flights state & localStorage
+    if (targetFlightObj) {
+      setFlights((prev) => {
+        const withoutTarget = prev.filter(
+          (f) =>
+            f.id !== targetFlightObj!.id &&
+            f.flightNumber.toLowerCase().replace(/[\s-]/g, '') !== targetFlightObj!.flightNumber.toLowerCase().replace(/[\s-]/g, '')
+        );
+        const updated = [targetFlightObj!, ...withoutTarget];
+        try {
+          localStorage.setItem('american_airlines_flights', JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
     }
 
     if (targetFlightId) setTrackerFlightId(targetFlightId);
@@ -397,29 +479,57 @@ export default function App() {
 
   // Handlers for Firestore CRUD
   const handleBookingComplete = async (newBooking: Booking) => {
-    // 1. Ensure the flight itself is preserved in the flights list so it's always trackable
-    if (bookingFlight) {
-      setFlights((prev) => {
-        if (!prev.some((f) => f.id === bookingFlight.id || f.flightNumber === bookingFlight.flightNumber)) {
-          const updated = [bookingFlight, ...prev];
-          try {
-            localStorage.setItem('american_airlines_flights', JSON.stringify(updated));
-          } catch (e) {}
-          return updated;
-        }
-        return prev;
-      });
-    }
+    // 1. Immediately update local bookings state and localStorage synchronously
+    setBookings((prev) => {
+      const updated = [newBooking, ...prev.filter((b) => b.id !== newBooking.id)];
+      try {
+        localStorage.setItem('american_airlines_bookings', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
 
-    // 2. Pre-set the tracker so if the user clicks "Track Flight" anytime next, their newly booked flight is ready
+    // 2. Reconstruct the booked flight and add it to flights state and localStorage immediately
+    const bookedFlight: Flight = {
+      id: newBooking.flightId,
+      flightNumber: newBooking.flightNumber,
+      airline: newBooking.airline || 'American Airlines',
+      airlineCode: 'AA',
+      aircraft: newBooking.aircraft || 'Boeing 787-9 Dreamliner',
+      origin: newBooking.origin,
+      destination: newBooking.destination,
+      departureTime: newBooking.departureTime,
+      arrivalTime: newBooking.arrivalTime,
+      duration: newBooking.duration || '8h 00m',
+      price: newBooking.pricePaid || 650,
+      totalSeats: 180,
+      availableSeats: Math.max(0, 180 - (newBooking.passengerCount || 1)),
+      terminal: newBooking.terminal || 'T8',
+      gate: newBooking.gate || 'B20',
+      status: 'On Time',
+    };
+
+    setFlights((prev) => {
+      const withoutSame = prev.filter(
+        (f) =>
+          f.id !== bookedFlight.id &&
+          f.flightNumber.toLowerCase().replace(/[\s-]/g, '') !== bookedFlight.flightNumber.toLowerCase().replace(/[\s-]/g, '')
+      );
+      const updated = [bookedFlight, ...withoutSame];
+      try {
+        localStorage.setItem('american_airlines_flights', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    // 3. Immediately pre-set the tracker so that navigating to Live Radar tracks this booked flight
     setTrackerFlightId(newBooking.flightId);
     setTrackerQuery(newBooking.flightNumber);
 
+    // 4. Save to Firestore asynchronously
     try {
       await addBookingToFirestore(newBooking);
     } catch (e) {
-      console.error('Failed to add booking to Firestore, maintaining local fallback:', e);
-      setBookings((prev) => [newBooking, ...prev]);
+      console.warn('Booking preserved in local state, Firestore background write error:', e);
     }
   };
 

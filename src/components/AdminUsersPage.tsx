@@ -51,7 +51,7 @@ interface AdminUsersPageProps {
   onBookFlight?: (flight: Flight) => void;
   onViewBoardingPass?: (booking: Booking) => void;
   onCancelBooking?: (bookingId: string) => void;
-  onTrackFlight?: (flight: Flight | string) => void;
+  onTrackFlight?: (target: Flight | Booking | string, flightNumber?: string) => void;
   onInspectPassenger?: (booking: Booking) => void;
   initialTab?: 'superadmin-bookings' | 'pricing' | 'booked-pricing' | 'users';
 }
@@ -858,8 +858,8 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                         {onTrackFlight && (
                           <button
                             type="button"
-                            onClick={() => onTrackFlight(b.flightId || b.flightNumber)}
-                            className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-black text-xs flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 transition min-h-[38px]"
+                            onClick={() => onTrackFlight(b, b.flightNumber)}
+                            className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-black text-xs flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 transition min-h-[38px] cursor-pointer"
                           >
                             <Radio className="w-3.5 h-3.5 text-sky-500" />
                             <span>Track Radar</span>
