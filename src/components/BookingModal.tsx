@@ -31,7 +31,9 @@ import {
   Twitter,
   Instagram,
   Smartphone,
-  ExternalLink
+  ExternalLink,
+  Radio,
+  Printer
 } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
 import { WORLD_AIRPORTS, searchWorldAirports, createFlightForDestination } from '../data/worldAirports';
@@ -61,6 +63,8 @@ interface BookingModalProps {
   onInspectPassenger: (booking: Booking) => void;
   currentUser?: AppUserProfile | null;
   onUpdateFlightPrice?: (flightId: string, newPrice: number) => void;
+  onTrackFlight?: (flightId: string, flightNumber?: string) => void;
+  onViewBoardingPass?: (booking: Booking) => void;
 }
 
 export const BookingModal: React.FC<BookingModalProps> = ({
@@ -73,6 +77,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   onInspectPassenger,
   currentUser,
   onUpdateFlightPrice,
+  onTrackFlight,
+  onViewBoardingPass,
 }) => {
   if (!flight) return null;
 
@@ -1867,17 +1873,51 @@ Total Paid: $${bkg.pricePaid}
                   </div>
                 </div>
 
-                <div className="text-[11px] text-slate-300 bg-[#00152E] p-3.5 rounded-xl border border-slate-700">
-                  ⚡ <strong>Seat Lookup Ready:</strong> Search seat <strong className="text-amber-300">{issuedBooking.seatNumber}</strong> or ticket <strong className="text-sky-300">{issuedBooking.ticketNumber}</strong> in the passenger lookup to view full profile details.
+                <div className="text-[11px] text-slate-300 bg-[#00152E] p-3.5 rounded-xl border border-slate-700 flex items-center justify-between flex-wrap gap-2">
+                  <span>
+                    ⚡ <strong>Reservation Active:</strong> Flight <strong className="text-sky-300">{issuedBooking.flightNumber}</strong> is scheduled and trackable on live radar.
+                  </span>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded font-mono font-bold">
+                    Radar Ready
+                  </span>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-3">
+                {onTrackFlight && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onTrackFlight(issuedBooking.flightId, issuedBooking.flightNumber);
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-black px-6 py-3 rounded-xl transition shadow-lg shadow-emerald-700/20 flex items-center gap-2 cursor-pointer"
+                  >
+                    <Radio className="w-4 h-4 text-emerald-200 animate-pulse" />
+                    <span>Track Flight Radar Now</span>
+                  </button>
+                )}
+
+                {onViewBoardingPass && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onViewBoardingPass(issuedBooking);
+                    }}
+                    className="bg-slate-800 hover:bg-slate-700 text-white text-xs sm:text-sm font-bold px-5 py-3 rounded-xl transition border border-slate-600 flex items-center gap-2 cursor-pointer"
+                  >
+                    <Printer className="w-4 h-4 text-sky-400" />
+                    <span>View Boarding Pass</span>
+                  </button>
+                )}
+
                 <button
+                  type="button"
                   onClick={() => {
                     onClose();
                   }}
-                  className="bg-[#0078D2] hover:bg-[#0060A9] text-white text-sm font-bold px-8 py-3 rounded-xl transition shadow-md shadow-sky-600/20"
+                  className="bg-[#0078D2] hover:bg-[#0060A9] text-white text-xs sm:text-sm font-bold px-6 py-3 rounded-xl transition shadow-md shadow-sky-600/20 cursor-pointer"
                 >
                   Done
                 </button>

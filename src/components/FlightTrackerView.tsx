@@ -82,34 +82,105 @@ export const FlightTrackerView: React.FC<FlightTrackerViewProps> = ({
     }
   }, [initialQuery]);
 
+  // Unified list of all flights: provided flights + any flights reconstructed from active bookings
+  const allTrackableFlights = useMemo(() => {
+    const map = new Map<string, Flight>();
+    flights.forEach((f) => map.set(f.id, f));
+
+    bookings.forEach((b) => {
+      const alreadyHas = Array.from(map.values()).some(
+        (f) => f.id === b.flightId || f.flightNumber.toLowerCase() === b.flightNumber.toLowerCase()
+      );
+      if (!alreadyHas) {
+        map.set(b.flightId, {
+          id: b.flightId,
+          flightNumber: b.flightNumber,
+          airline: b.airline || 'American Airlines',
+          airlineCode: 'AA',
+          aircraft: b.aircraft || 'Boeing 787-9 Dreamliner',
+          origin: b.origin,
+          destination: b.destination,
+          departureTime: b.departureTime,
+          arrivalTime: b.arrivalTime,
+          duration: b.duration || '8h 00m',
+          price: b.pricePaid || 650,
+          totalSeats: 180,
+          availableSeats: 140,
+          terminal: b.terminal || 'T8',
+          gate: b.gate || 'B20',
+          status: 'On Time',
+        });
+      }
+    });
+
+    return Array.from(map.values());
+  }, [flights, bookings]);
+
   // Filtered flights based on search query
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return flights;
+    if (!q) return allTrackableFlights;
 
-    // Remove dashes or spaces for flight number matching (e.g. AA104 vs AA-104 vs 104)
+    // Remove dashes or spaces for flight number, PNR, or ticket matching
     const cleanQ = q.replace(/[\s-]/g, '');
 
-    return flights.filter((f) => {
+    return allTrackableFlights.filter((f) => {
       const cleanFlightNum = f.flightNumber.toLowerCase().replace(/[\s-]/g, '');
-      const flightMatches = cleanFlightNum.includes(cleanQ) || f.flightNumber.toLowerCase().includes(q);
-      const originMatches = f.origin.code.toLowerCase().includes(q) || f.origin.city.toLowerCase().includes(q) || f.origin.airport.toLowerCase().includes(q);
-      const destMatches = f.destination.code.toLowerCase().includes(q) || f.destination.city.toLowerCase().includes(q) || f.destination.airport.toLowerCase().includes(q);
+      const flightNumWithoutAA = cleanFlightNum.replace(/^aa/, '');
+      const flightMatches =
+        cleanFlightNum.includes(cleanQ) ||
+        f.flightNumber.toLowerCase().includes(q) ||
+        f.id.toLowerCase() === q ||
+        f.id.toLowerCase().includes(cleanQ) ||
+        (cleanQ.length >= 2 && flightNumWithoutAA === cleanQ);
+
+      const originMatches =
+        f.origin.code.toLowerCase().includes(q) ||
+        f.origin.city.toLowerCase().includes(q) ||
+        f.origin.airport.toLowerCase().includes(q) ||
+        (f.origin.country && f.origin.country.toLowerCase().includes(q));
+
+      const destMatches =
+        f.destination.code.toLowerCase().includes(q) ||
+        f.destination.city.toLowerCase().includes(q) ||
+        f.destination.airport.toLowerCase().includes(q) ||
+        (f.destination.country && f.destination.country.toLowerCase().includes(q));
+
       const aircraftMatches = f.aircraft.toLowerCase().includes(q);
 
-      // Check if query matches any passenger ticket/name on this flight
-      const bookingMatches = bookings.some(
-        (b) =>
-          b.flightId === f.id &&
-          (b.ticketNumber.toLowerCase().includes(q) ||
-            b.confirmationCode.toLowerCase().includes(q) ||
-            b.seatNumber.toLowerCase().includes(q) ||
-            b.passenger.fullName.toLowerCase().includes(q))
-      );
+      // Check if query matches any passenger ticket/name/PNR on this flight
+      const bookingMatches = bookings.some((b) => {
+        const isThisFlight =
+          b.flightId === f.id ||
+          b.flightNumber.toLowerCase() === f.flightNumber.toLowerCase() ||
+          b.flightNumber.toLowerCase().replace(/[\s-]/g, '') === cleanFlightNum;
+
+        if (!isThisFlight) return false;
+
+        const cleanTicket = b.ticketNumber.toLowerCase().replace(/[\s-]/g, '');
+        const cleanConfirm = b.confirmationCode.toLowerCase().replace(/[\s-]/g, '');
+
+        const ticketMatches = b.ticketNumber.toLowerCase().includes(q) || cleanTicket.includes(cleanQ);
+        const confirmMatches = b.confirmationCode.toLowerCase().includes(q) || cleanConfirm.includes(cleanQ);
+        const seatMatches = b.seatNumber.toLowerCase().includes(q) || b.seatNumber.toLowerCase().replace(/[\s-]/g, '') === cleanQ;
+        const passengerMatches =
+          b.passenger.fullName.toLowerCase().includes(q) ||
+          b.passenger.email.toLowerCase().includes(q) ||
+          (b.passenger.passportNumber && b.passenger.passportNumber.toLowerCase().includes(q));
+
+        const familyMatches = b.passengers?.some(
+          (p) =>
+            p.fullName.toLowerCase().includes(q) ||
+            p.email?.toLowerCase().includes(q) ||
+            p.seatNumber?.toLowerCase().includes(q)
+        );
+
+        return ticketMatches || confirmMatches || seatMatches || passengerMatches || familyMatches;
+      });
 
       return flightMatches || originMatches || destMatches || aircraftMatches || bookingMatches;
     });
-  }, [flights, bookings, searchQuery]);
+  }, [allTrackableFlights, bookings, searchQuery]);
 
   // Automatically select first matching flight if current selection isn't in filtered list
   useEffect(() => {
@@ -120,8 +191,13 @@ export const FlightTrackerView: React.FC<FlightTrackerViewProps> = ({
 
   // Active tracked flight
   const activeFlight = useMemo(() => {
-    return flights.find((f) => f.id === selectedFlightId) || flights[0];
-  }, [flights, selectedFlightId]);
+    return (
+      allTrackableFlights.find((f) => f.id === selectedFlightId) ||
+      allTrackableFlights.find((f) => f.flightNumber.toLowerCase() === selectedFlightId.toLowerCase()) ||
+      searchResults[0] ||
+      allTrackableFlights[0]
+    );
+  }, [allTrackableFlights, selectedFlightId, searchResults]);
 
   // Calculate detailed flight navigation metrics
   const flightMetrics = useMemo(() => {
@@ -136,7 +212,11 @@ export const FlightTrackerView: React.FC<FlightTrackerViewProps> = ({
   // Associated bookings for this flight
   const flightBookings = useMemo(() => {
     if (!activeFlight) return [];
-    return bookings.filter((b) => b.flightId === activeFlight.id || b.flightNumber === activeFlight.flightNumber);
+    return bookings.filter(
+      (b) =>
+        b.flightId === activeFlight.id ||
+        b.flightNumber.toLowerCase() === activeFlight.flightNumber.toLowerCase()
+    );
   }, [bookings, activeFlight]);
 
   // Simulated live telemetry based on flight status and scheduled duration
@@ -305,43 +385,70 @@ export const FlightTrackerView: React.FC<FlightTrackerViewProps> = ({
         </div>
 
         {/* Quick Sample Tracking Buttons */}
-        <div className="pt-4 border-t border-slate-800/80 mt-4">
-          <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5 mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" /> One-Click Test Flight Numbers & Routes:
-          </span>
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
-            {flights.slice(0, 6).map((fl) => {
-              const isSelected = activeFlight?.id === fl.id;
-              return (
-                <button
-                  key={fl.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedFlightId(fl.id);
-                    setSearchQuery(fl.flightNumber);
-                  }}
-                  className={`text-xs font-bold px-2.5 sm:px-3 py-1.5 rounded-xl border transition flex items-center gap-1.5 min-h-[36px] shadow-sm ${
-                    isSelected
-                      ? 'bg-[#C41230] text-white border-red-400 ring-2 ring-red-500/40 font-black'
-                      : 'bg-slate-800/90 text-slate-200 border-slate-700 hover:bg-slate-700 hover:text-white'
-                  }`}
-                >
-                  <Plane className="w-3.5 h-3.5 text-sky-400" />
-                  <span className="font-mono">{fl.flightNumber}</span>
-                  <span className="opacity-80 text-[11px]">({fl.origin.code} ➔ {fl.destination.code})</span>
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              onClick={() => {
-                setSearchQuery('001-9482-7710');
-              }}
-              className="text-xs font-bold px-2.5 sm:px-3 py-1.5 rounded-xl border border-sky-400/40 bg-sky-900/60 text-sky-200 hover:bg-sky-800/80 transition flex items-center gap-1.5 min-h-[36px]"
-            >
-              <Ticket className="w-3.5 h-3.5 text-amber-300" />
-              <span>Ticket: 001-9482-7710</span>
-            </button>
+        <div className="pt-4 border-t border-slate-800/80 mt-4 space-y-3">
+          {bookings.length > 0 && (
+            <div>
+              <span className="text-xs font-black text-emerald-400 flex items-center gap-1.5 mb-2">
+                <Ticket className="w-3.5 h-3.5 text-emerald-400" /> Your Booked Reservations ({bookings.length}):
+              </span>
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                {bookings.map((b) => {
+                  const isSelected = activeFlight?.flightNumber === b.flightNumber;
+                  return (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedFlightId(b.flightId);
+                        setSearchQuery(b.flightNumber);
+                      }}
+                      className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition flex items-center gap-2 min-h-[36px] shadow-sm cursor-pointer ${
+                        isSelected
+                          ? 'bg-emerald-600 text-white border-emerald-400 ring-2 ring-emerald-500/40 font-black'
+                          : 'bg-emerald-950/70 text-emerald-200 border-emerald-800/80 hover:bg-emerald-900/90 hover:text-white'
+                      }`}
+                    >
+                      <Radio className="w-3.5 h-3.5 text-emerald-300 animate-pulse" />
+                      <span className="font-mono font-black">{b.flightNumber}</span>
+                      <span className="opacity-90 text-[11px]">({b.origin.code} ➔ {b.destination.code})</span>
+                      <span className="text-[10px] bg-slate-900/90 px-1.5 py-0.5 rounded font-mono text-amber-300 border border-emerald-700/50">
+                        {b.seatNumber}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5 mb-2">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" /> One-Click Route Samples:
+            </span>
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+              {allTrackableFlights.slice(0, 6).map((fl) => {
+                const isSelected = activeFlight?.id === fl.id;
+                return (
+                  <button
+                    key={fl.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedFlightId(fl.id);
+                      setSearchQuery(fl.flightNumber);
+                    }}
+                    className={`text-xs font-bold px-2.5 sm:px-3 py-1.5 rounded-xl border transition flex items-center gap-1.5 min-h-[36px] shadow-sm cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#C41230] text-white border-red-400 ring-2 ring-red-500/40 font-black'
+                        : 'bg-slate-800/90 text-slate-200 border-slate-700 hover:bg-slate-700 hover:text-white'
+                    }`}
+                  >
+                    <Plane className="w-3.5 h-3.5 text-sky-400" />
+                    <span className="font-mono">{fl.flightNumber}</span>
+                    <span className="opacity-80 text-[11px]">({fl.origin.code} ➔ {fl.destination.code})</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -356,13 +463,13 @@ export const FlightTrackerView: React.FC<FlightTrackerViewProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by Flight Number (e.g. AA-104, 302), Airport (JFK, LHR, Lagos), or Ticket #..."
+              placeholder="Search by Flight # (e.g. AA-104), Ticket # (001-...), PNR, Passenger Name, or Airport..."
               className="w-full pl-11 sm:pl-12 pr-10 py-3 sm:py-3.5 rounded-xl border border-slate-300 dark:border-slate-700 focus:border-[#0078D2] focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-900/40 outline-none transition text-slate-900 dark:text-slate-100 font-bold placeholder-slate-400 dark:placeholder-slate-500 text-xs sm:text-base shadow-inner min-h-[44px] bg-slate-50/50 dark:bg-slate-800/60"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs bg-slate-200 dark:bg-slate-700 p-1 rounded-full"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs bg-slate-200 dark:bg-slate-700 p-1 rounded-full cursor-pointer"
               >
                 ✕
               </button>
@@ -375,16 +482,20 @@ export const FlightTrackerView: React.FC<FlightTrackerViewProps> = ({
               value={selectedFlightId}
               onChange={(e) => {
                 setSelectedFlightId(e.target.value);
-                const found = flights.find((f) => f.id === e.target.value);
+                const found = allTrackableFlights.find((f) => f.id === e.target.value);
                 if (found) setSearchQuery(found.flightNumber);
               }}
               className="w-full py-3 sm:py-3.5 px-3 sm:px-4 rounded-xl border border-slate-300 dark:border-slate-700 focus:border-[#0078D2] focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-900/40 outline-none text-slate-800 dark:text-slate-200 font-bold text-xs sm:text-sm bg-white dark:bg-slate-800 min-h-[44px]"
             >
-              {searchResults.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.flightNumber}: {f.origin.code} ➔ {f.destination.code} ({f.origin.city} to {f.destination.city})
-                </option>
-              ))}
+              {searchResults.length === 0 ? (
+                <option disabled value="">No matching flights found</option>
+              ) : (
+                searchResults.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.flightNumber}: {f.origin.code} ➔ {f.destination.code} ({f.origin.city} to {f.destination.city})
+                  </option>
+                ))
+              )}
             </select>
           </div>
         </div>
@@ -392,12 +503,25 @@ export const FlightTrackerView: React.FC<FlightTrackerViewProps> = ({
         {/* Search Results Summary / Chips */}
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
           <span>
-            Tracking Flight <strong className="text-slate-900 dark:text-slate-100 font-mono">{activeFlight?.flightNumber}</strong> ({activeFlight?.origin.city} to {activeFlight?.destination.city})
+            {searchResults.length > 0 ? (
+              <>
+                Tracking Flight <strong className="text-slate-900 dark:text-slate-100 font-mono">{activeFlight?.flightNumber}</strong> ({activeFlight?.origin.city} to {activeFlight?.destination.city})
+                {flightBookings.length > 0 && (
+                  <span className="ml-2 font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                    ✓ {flightBookings.length} Active Booking(s) on this flight
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="text-amber-600 dark:text-amber-400 font-bold">
+                No active flight matched "{searchQuery}"
+              </span>
+            )}
           </span>
           <div className="flex items-center gap-2">
             <button
               onClick={handleManualRefresh}
-              className="flex items-center gap-1 text-sky-600 dark:text-sky-400 hover:underline font-bold"
+              className="flex items-center gap-1 text-sky-600 dark:text-sky-400 hover:underline font-bold cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLiveRefreshing ? 'animate-spin' : ''}`} />
               <span>Refresh Radar</span>
@@ -405,7 +529,7 @@ export const FlightTrackerView: React.FC<FlightTrackerViewProps> = ({
             <span>•</span>
             <button
               onClick={handleCopyShareLink}
-              className="flex items-center gap-1 text-[#C41230] dark:text-red-400 hover:underline font-bold"
+              className="flex items-center gap-1 text-[#C41230] dark:text-red-400 hover:underline font-bold cursor-pointer"
             >
               <Share2 className="w-3.5 h-3.5" />
               <span>{copySuccess ? 'Copied Link!' : 'Share Status'}</span>
@@ -414,8 +538,45 @@ export const FlightTrackerView: React.FC<FlightTrackerViewProps> = ({
         </div>
       </div>
 
-      {/* Main Tracked Flight Dashboard */}
-      {activeFlight && (
+      {/* No Record Found State */}
+      {searchResults.length === 0 ? (
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-12 border border-dashed border-slate-300 dark:border-slate-800 shadow-md text-center space-y-4">
+          <div className="w-14 h-14 bg-amber-100 dark:bg-amber-950/80 rounded-2xl flex items-center justify-center mx-auto text-amber-500">
+            <AlertCircle className="w-7 h-7" />
+          </div>
+          <div className="space-y-1.5">
+            <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100">
+              No Flight Radar Record Found for "{searchQuery}"
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+              We couldn't locate an active flight route matching your search. Check for typos or track one of your booked reservations below.
+            </p>
+          </div>
+
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="bg-[#0078D2] hover:bg-[#0060A9] text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm cursor-pointer"
+            >
+              Show All Flights ({allTrackableFlights.length})
+            </button>
+            {bookings.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedFlightId(bookings[0].flightId);
+                  setSearchQuery(bookings[0].flightNumber);
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+              >
+                <Radio className="w-3.5 h-3.5 text-white" />
+                <span>Track Your Booked Flight ({bookings[0].flightNumber})</span>
+              </button>
+            )}
+          </div>
+        </div>
+      ) : activeFlight && (
         <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
           {/* Main Flight Hero Radar Card */}
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">

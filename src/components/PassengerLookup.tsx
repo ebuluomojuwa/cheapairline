@@ -63,58 +63,120 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
 
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
 
-  // Filter logic: search by seat number, ticket number, confirmation code, or passenger name
+  // Merge static flights with any flight present in active bookings
+  const allLookupFlights = useMemo(() => {
+    const map = new Map<string, Flight>();
+    flights.forEach((f) => map.set(f.id, f));
+
+    bookings.forEach((b) => {
+      const alreadyHas = Array.from(map.values()).some(
+        (f) => f.id === b.flightId || f.flightNumber.toLowerCase() === b.flightNumber.toLowerCase()
+      );
+      if (!alreadyHas) {
+        map.set(b.flightId, {
+          id: b.flightId,
+          flightNumber: b.flightNumber,
+          airline: b.airline || 'American Airlines',
+          airlineCode: 'AA',
+          aircraft: b.aircraft || 'Boeing 787-9 Dreamliner',
+          origin: b.origin,
+          destination: b.destination,
+          departureTime: b.departureTime,
+          arrivalTime: b.arrivalTime,
+          duration: b.duration || '8h 00m',
+          price: b.pricePaid || 650,
+          totalSeats: 180,
+          availableSeats: 140,
+          terminal: b.terminal || 'T8',
+          gate: b.gate || 'B20',
+          status: 'On Time',
+        });
+      }
+    });
+
+    return Array.from(map.values());
+  }, [flights, bookings]);
+
+  // Filter logic: search by seat number, ticket number, confirmation code, passenger name, flight number, airport
   const matchedBookings = useMemo(() => {
     const q = query.trim().toLowerCase();
-    // Non-admins must enter a search query (ticket number or passenger name) to retrieve tickets
+    const cleanQ = q.replace(/[\s-]/g, '');
+
+    // When query is empty, display all bookings (or filtered by selected flight)
     if (!q) {
-      return isAdmin ? bookings : [];
+      if (selectedFlightFilter === 'all') return bookings;
+      return bookings.filter(
+        (b) =>
+          b.flightId === selectedFlightFilter ||
+          b.flightNumber.toLowerCase() === selectedFlightFilter.toLowerCase()
+      );
     }
 
     return bookings.filter((b) => {
-      const matchFlight = selectedFlightFilter === 'all' || b.flightId === selectedFlightFilter || b.flightNumber.toLowerCase().includes(selectedFlightFilter.toLowerCase());
+      const matchFlight =
+        selectedFlightFilter === 'all' ||
+        b.flightId === selectedFlightFilter ||
+        b.flightNumber.toLowerCase() === selectedFlightFilter.toLowerCase() ||
+        b.flightNumber.toLowerCase().replace(/[\s-]/g, '') === selectedFlightFilter.toLowerCase().replace(/[\s-]/g, '');
+
       if (!matchFlight) return false;
 
-      const seat = b.seatNumber.toLowerCase();
-      const ticket = b.ticketNumber.toLowerCase();
-      const confirm = b.confirmationCode.toLowerCase();
-      const name = b.passenger.fullName.toLowerCase();
-      const email = b.passenger.email.toLowerCase();
-      const passport = b.passenger.passportNumber.toLowerCase();
-      const flightNum = b.flightNumber.toLowerCase();
+      const cleanSeat = b.seatNumber.toLowerCase().replace(/[\s-]/g, '');
+      const cleanTicket = b.ticketNumber.toLowerCase().replace(/[\s-]/g, '');
+      const cleanConfirm = b.confirmationCode.toLowerCase().replace(/[\s-]/g, '');
+      const cleanFlightNum = b.flightNumber.toLowerCase().replace(/[\s-]/g, '');
+      const flightNumWithoutAA = cleanFlightNum.replace(/^aa/, '');
+      const ticketWithoutPrefix = cleanTicket.replace(/^001/, '');
 
       const matchesLead = (
-        seat === q ||
-        seat.endsWith(q) ||
-        ticket.includes(q) ||
-        confirm.includes(q) ||
-        name.includes(q) ||
-        email.includes(q) ||
-        passport.includes(q) ||
-        flightNum.includes(q)
+        b.seatNumber.toLowerCase() === q ||
+        cleanSeat === cleanQ ||
+        b.ticketNumber.toLowerCase().includes(q) ||
+        cleanTicket.includes(cleanQ) ||
+        (cleanQ.length >= 3 && ticketWithoutPrefix.includes(cleanQ)) ||
+        b.confirmationCode.toLowerCase().includes(q) ||
+        cleanConfirm.includes(cleanQ) ||
+        b.passenger.fullName.toLowerCase().includes(q) ||
+        b.passenger.email.toLowerCase().includes(q) ||
+        b.passenger.passportNumber.toLowerCase().includes(q) ||
+        cleanFlightNum.includes(cleanQ) ||
+        b.flightNumber.toLowerCase().includes(q) ||
+        (cleanQ.length >= 2 && flightNumWithoutAA === cleanQ) ||
+        b.origin.city.toLowerCase().includes(q) ||
+        b.origin.code.toLowerCase().includes(q) ||
+        b.destination.city.toLowerCase().includes(q) ||
+        b.destination.code.toLowerCase().includes(q) ||
+        b.aircraft.toLowerCase().includes(q)
       );
 
-      const matchesFamily = b.passengers?.some((p) =>
-        p.fullName.toLowerCase().includes(q) ||
-        p.passportNumber?.toLowerCase().includes(q) ||
-        p.seatNumber?.toLowerCase() === q ||
-        p.email?.toLowerCase().includes(q)
-      );
+      const matchesFamily = b.passengers?.some((p) => {
+        const pCleanSeat = (p.seatNumber || '').toLowerCase().replace(/[\s-]/g, '');
+        return (
+          p.fullName.toLowerCase().includes(q) ||
+          p.passportNumber?.toLowerCase().includes(q) ||
+          pCleanSeat === cleanQ ||
+          p.seatNumber?.toLowerCase() === q ||
+          p.email?.toLowerCase().includes(q)
+        );
+      });
 
       return matchesLead || matchesFamily;
     });
-  }, [query, bookings, selectedFlightFilter, isAdmin]);
+  }, [query, bookings, selectedFlightFilter]);
 
   // Check if query also matches any flight schedules directly
   const matchedFlights = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
     const cleanQ = q.replace(/[\s-]/g, '');
-    return flights.filter((f) => {
+    const flightNumWithoutAA = cleanQ.replace(/^aa/, '');
+
+    return allLookupFlights.filter((f) => {
       const cleanFlightNum = f.flightNumber.toLowerCase().replace(/[\s-]/g, '');
       return (
         cleanFlightNum.includes(cleanQ) ||
         f.flightNumber.toLowerCase().includes(q) ||
+        (cleanQ.length >= 2 && cleanFlightNum.replace(/^aa/, '') === flightNumWithoutAA) ||
         f.origin.code.toLowerCase().includes(q) ||
         f.origin.city.toLowerCase().includes(q) ||
         f.destination.code.toLowerCase().includes(q) ||
@@ -122,7 +184,7 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
         f.aircraft.toLowerCase().includes(q)
       );
     });
-  }, [flights, query]);
+  }, [allLookupFlights, query]);
 
   const handleQuickSample = (sampleText: string) => {
     setQuery(sampleText);
@@ -179,36 +241,59 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
               : 'Input your ticket number (e.g. 001-9482-7710) or assigned seat number (01A, 02B) to retrieve complete booking details and boarding clearance passes.'}
           </p>
 
-          {/* Quick Test Chips */}
-          <div className="pt-2">
-            <p className="text-xs text-slate-300 font-bold mb-2 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Click to test flight ticket numbers:
-            </p>
-            <div className="flex flex-wrap gap-1.5 sm:gap-2">
-              <button
-                onClick={() => handleQuickSample('001-9482-7710')}
-                className="bg-[#C41230] hover:bg-red-700 text-white text-xs font-mono px-2.5 sm:px-3 py-1.5 rounded-lg border border-red-400/40 transition flex items-center gap-1.5 shadow-sm font-bold ring-2 ring-red-500/30"
-              >
-                <Ticket className="w-3.5 h-3.5 text-white" /> Ticket 001-9482-7710
-              </button>
-              <button
-                onClick={() => handleQuickSample('Elizabeth Gutierrez')}
-                className="bg-slate-800/90 hover:bg-slate-700 text-slate-100 text-xs px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-600 transition flex items-center gap-1.5 shadow-sm font-bold"
-              >
-                <User className="w-3.5 h-3.5 text-sky-400" /> Elizabeth Gutierrez
-              </button>
-              <button
-                onClick={() => handleQuickSample('02B')}
-                className="bg-[#0078D2]/80 hover:bg-[#0078D2] text-white text-xs font-mono px-2.5 sm:px-3 py-1.5 rounded-lg border border-sky-400/30 transition flex items-center gap-1.5 shadow-sm font-bold"
-              >
-                <Armchair className="w-3.5 h-3.5 text-amber-300" /> Seat 02B
-              </button>
-              <button
-                onClick={() => handleQuickSample('01A')}
-                className="bg-[#0078D2]/80 hover:bg-[#0078D2] text-white text-xs font-mono px-2.5 sm:px-3 py-1.5 rounded-lg border border-sky-400/30 transition flex items-center gap-1.5 shadow-sm font-bold"
-              >
-                <Armchair className="w-3.5 h-3.5 text-amber-300" /> Seat 01A
-              </button>
+          {/* Quick Test Chips & User's Booked Tickets */}
+          <div className="pt-2 space-y-2">
+            {bookings.length > 0 && (
+              <div>
+                <p className="text-xs text-emerald-300 font-extrabold mb-1.5 flex items-center gap-1.5">
+                  <Ticket className="w-3.5 h-3.5 text-emerald-400" /> Your Booked Flight Tickets ({bookings.length}):
+                </p>
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                  {bookings.slice(0, 5).map((b) => (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => handleQuickSample(b.ticketNumber)}
+                      className="bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 text-xs font-mono px-2.5 sm:px-3 py-1.5 rounded-lg border border-emerald-700/80 transition flex items-center gap-1.5 shadow-sm font-bold cursor-pointer"
+                    >
+                      <Ticket className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{b.ticketNumber} ({b.flightNumber})</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <p className="text-xs text-slate-300 font-bold mb-2 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Click to test sample ticket numbers:
+              </p>
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                <button
+                  onClick={() => handleQuickSample('001-9482-7710')}
+                  className="bg-[#C41230] hover:bg-red-700 text-white text-xs font-mono px-2.5 sm:px-3 py-1.5 rounded-lg border border-red-400/40 transition flex items-center gap-1.5 shadow-sm font-bold ring-2 ring-red-500/30 cursor-pointer"
+                >
+                  <Ticket className="w-3.5 h-3.5 text-white" /> Ticket 001-9482-7710
+                </button>
+                <button
+                  onClick={() => handleQuickSample('Elizabeth Gutierrez')}
+                  className="bg-slate-800/90 hover:bg-slate-700 text-slate-100 text-xs px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-600 transition flex items-center gap-1.5 shadow-sm font-bold cursor-pointer"
+                >
+                  <User className="w-3.5 h-3.5 text-sky-400" /> Elizabeth Gutierrez
+                </button>
+                <button
+                  onClick={() => handleQuickSample('02B')}
+                  className="bg-[#0078D2]/80 hover:bg-[#0078D2] text-white text-xs font-mono px-2.5 sm:px-3 py-1.5 rounded-lg border border-sky-400/30 transition flex items-center gap-1.5 shadow-sm font-bold cursor-pointer"
+                >
+                  <Armchair className="w-3.5 h-3.5 text-amber-300" /> Seat 02B
+                </button>
+                <button
+                  onClick={() => handleQuickSample('01A')}
+                  className="bg-[#0078D2]/80 hover:bg-[#0078D2] text-white text-xs font-mono px-2.5 sm:px-3 py-1.5 rounded-lg border border-sky-400/30 transition flex items-center gap-1.5 shadow-sm font-bold cursor-pointer"
+                >
+                  <Armchair className="w-3.5 h-3.5 text-amber-300" /> Seat 01A
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -223,13 +308,13 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Input Flight Ticket Number (e.g. 001-9482-7710), Seat (02B), or Name..."
+              placeholder="Search by Ticket Number (001-...), PNR, Flight (AA-104), Seat, or Passenger Name..."
               className="w-full pl-11 sm:pl-12 pr-10 py-3 sm:py-3.5 rounded-xl border border-slate-300 dark:border-slate-700 focus:border-[#C41230] focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/40 outline-none transition text-slate-900 dark:text-slate-100 font-bold placeholder-slate-400 dark:placeholder-slate-500 text-xs sm:text-base shadow-inner min-h-[44px]"
             />
             {query && (
               <button
                 onClick={() => setQuery('')}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 p-1 rounded-full"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 p-1 rounded-full cursor-pointer"
               >
                 ✕
               </button>
@@ -242,8 +327,8 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
               onChange={(e) => setSelectedFlightFilter(e.target.value)}
               className="w-full py-3 sm:py-3.5 px-3 sm:px-4 rounded-xl border border-slate-300 dark:border-slate-700 focus:border-[#0078D2] focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-900/40 outline-none text-slate-700 dark:text-slate-200 font-bold text-xs sm:text-sm bg-white dark:bg-slate-800 min-h-[44px]"
             >
-              <option value="all">✈️ All AA Flight Manifests</option>
-              {flights.map((f) => (
+              <option value="all">✈️ All AA Flight Manifests ({allLookupFlights.length})</option>
+              {allLookupFlights.map((f) => (
                 <option key={f.id} value={f.id}>
                   {f.flightNumber} ({f.origin.code} ➔ {f.destination.code})
                 </option>
@@ -355,17 +440,29 @@ export const PassengerLookup: React.FC<PassengerLookupProps> = ({
               </div>
 
               <div className="pt-2 flex flex-wrap justify-center gap-2">
+                {bookings.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuery('');
+                      setSelectedFlightFilter('all');
+                    }}
+                    className="inline-flex items-center gap-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 rounded-xl transition shadow-sm min-h-[40px] cursor-pointer"
+                  >
+                    <Ticket className="w-4 h-4 text-white" /> Show All Active Reservations ({bookings.length})
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setQuery('001-9482-7710')}
-                  className="inline-flex items-center gap-2 text-xs font-bold text-white bg-[#0078D2] hover:bg-[#0060A9] px-4 py-2.5 rounded-xl transition shadow-sm min-h-[40px]"
+                  className="inline-flex items-center gap-2 text-xs font-bold text-white bg-[#0078D2] hover:bg-[#0060A9] px-4 py-2.5 rounded-xl transition shadow-sm min-h-[40px] cursor-pointer"
                 >
                   <Ticket className="w-4 h-4 text-white" /> Try Sample Ticket: 001-9482-7710
                 </button>
                 <button
                   type="button"
                   onClick={() => setQuery('AA-104')}
-                  className="inline-flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 transition shadow-sm min-h-[40px]"
+                  className="inline-flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 transition shadow-sm min-h-[40px] cursor-pointer"
                 >
                   <Plane className="w-4 h-4 text-sky-500" /> Search Flight: AA-104
                 </button>
