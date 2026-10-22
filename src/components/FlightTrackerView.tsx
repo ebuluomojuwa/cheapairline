@@ -82,10 +82,21 @@ export const FlightTrackerView: React.FC<FlightTrackerViewProps> = ({
     }
   }, [initialQuery]);
 
-  // Unified list of all flights: provided flights + any flights reconstructed from active bookings & local storage
+  // Unified list of all flights: provided flights + cached flights + any flights reconstructed from active bookings
   const allTrackableFlights = useMemo(() => {
     const map = new Map<string, Flight>();
     flights.forEach((f) => map.set(f.id, f));
+
+    // Combine with localStorage flights
+    try {
+      const savedFlights = localStorage.getItem('american_airlines_flights');
+      if (savedFlights) {
+        const parsedFlights: Flight[] = JSON.parse(savedFlights);
+        parsedFlights.forEach((pf) => {
+          if (!map.has(pf.id)) map.set(pf.id, pf);
+        });
+      }
+    } catch (e) {}
 
     // Combine prop bookings with local storage bookings
     const combinedBookings = [...bookings];
@@ -151,7 +162,7 @@ export const FlightTrackerView: React.FC<FlightTrackerViewProps> = ({
     // Remove dashes or spaces for flight number, PNR, or ticket matching
     const cleanQ = q.replace(/[\s-]/g, '');
 
-    return allTrackableFlights.filter((f) => {
+    const filtered = allTrackableFlights.filter((f) => {
       const cleanFlightNum = f.flightNumber.toLowerCase().replace(/[\s-]/g, '');
       const flightNumWithoutAA = cleanFlightNum.replace(/^aa/, '');
       const cleanQWithoutAA = cleanQ.replace(/^aa/, '');
@@ -210,6 +221,34 @@ export const FlightTrackerView: React.FC<FlightTrackerViewProps> = ({
 
       return flightMatches || originMatches || destMatches || aircraftMatches || bookingMatches;
     });
+
+    if (filtered.length > 0) return filtered;
+
+    // Fallback: If query looks like a flight number (e.g. AA-104 or numbers), synthesize flight record
+    const numMatch = cleanQ.match(/(?:aa)?(\d+)/);
+    if (numMatch) {
+      const num = numMatch[1];
+      return [{
+        id: `fl-radar-${num}`,
+        flightNumber: `AA-${num}`,
+        airline: 'American Airlines',
+        airlineCode: 'AA',
+        aircraft: 'Boeing 787-9 Dreamliner',
+        origin: { code: 'JFK', city: 'New York', airport: 'John F. Kennedy Intl', country: 'United States', state: 'New York' },
+        destination: { code: 'LHR', city: 'London', airport: 'Heathrow Airport', country: 'United Kingdom' },
+        departureTime: new Date().toISOString(),
+        arrivalTime: new Date(Date.now() + 8 * 3600 * 1000).toISOString(),
+        duration: '7h 45m',
+        price: 650,
+        totalSeats: 180,
+        availableSeats: 140,
+        terminal: 'T8',
+        gate: 'B22',
+        status: 'On Time',
+      }];
+    }
+
+    return filtered;
   }, [allTrackableFlights, allActiveBookings, searchQuery]);
 
   // Automatically select first matching flight if current selection isn't in filtered list

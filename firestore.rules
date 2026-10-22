@@ -11,6 +11,20 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Flights collection (schedules and routes)
+    match /flights/{flightId} {
+      allow read, write: if true;
+    }
+
+    // Flight price and status overrides
+    match /flight_prices/{priceId} {
+      allow read, write: if true;
+    }
+
+    match /flight_statuses/{statusId} {
+      allow read, write: if true;
+    }
+
     // General fallback for all documents during testing
     match /{document=**} {
       allow read, write: if true;

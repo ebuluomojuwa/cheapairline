@@ -30,7 +30,7 @@ import {
 } from 'firebase/firestore';
 import firebaseConfigData from '../../firebase-applet-config.json';
 import { Booking, Flight } from '../types';
-import { INITIAL_BOOKINGS } from '../data/mockData';
+import { INITIAL_BOOKINGS, INITIAL_FLIGHTS } from '../data/mockData';
 
 export const SUPER_ADMIN_EMAILS = [
   'ebulupaulboyld@gmail.com',
@@ -227,6 +227,189 @@ export async function deleteBookingFromFirestore(bookingId: string): Promise<voi
   } catch (err) {
     console.warn('Error deleting booking from Firestore:', err);
     throw err;
+  }
+}
+
+// --- FIRESTORE FLIGHTS METHODS & DATABASE PERSISTENCE ---
+
+export const FLIGHTS_COLLECTION = 'flights';
+
+/**
+ * Real-time listener for flights collection in Firestore with auto-seeding
+ */
+export function subscribeFlights(onData: (flights: Flight[]) => void): () => void {
+  const colRef = collection(db, FLIGHTS_COLLECTION);
+
+  const unsubscribe = onSnapshot(colRef, async (snapshot) => {
+    if (snapshot.empty) {
+      console.log('Seeding Firestore with initial flight schedules & routes...');
+      try {
+        for (const flight of INITIAL_FLIGHTS) {
+          const cleanFlight = sanitizeFirestoreData(flight);
+          await setDoc(doc(db, FLIGHTS_COLLECTION, flight.id), cleanFlight);
+        }
+      } catch (seedErr) {
+        console.warn('Could not seed initial flights to Firestore:', seedErr);
+      }
+      onData(INITIAL_FLIGHTS);
+    } else {
+      const list: Flight[] = snapshot.docs.map((docSnap) => docSnap.data() as Flight);
+      onData(list);
+    }
+  }, (err) => {
+    console.warn('Firestore flights subscription fallback to local data:', err?.message || err);
+    onData(INITIAL_FLIGHTS);
+  });
+
+  return unsubscribe;
+}
+
+/**
+ * Add or update a flight record directly in Firestore
+ */
+export async function addOrUpdateFlightInFirestore(flight: Flight): Promise<void> {
+  try {
+    const cleanFlight = sanitizeFirestoreData({
+      ...flight,
+      lastUpdated: new Date().toISOString(),
+    });
+    await setDoc(doc(db, FLIGHTS_COLLECTION, flight.id), cleanFlight, { merge: true });
+  } catch (err) {
+    console.warn('Error saving flight record to Firestore:', err);
+    throw err;
+  }
+}
+
+/**
+ * Persists both the booked passenger ticket and the corresponding flight route in Firestore
+ */
+export async function syncBookedFlightToFirestore(booking: Booking, flight?: Flight): Promise<void> {
+  try {
+    // 1. Save booking document
+    const cleanBooking = sanitizeFirestoreData(booking);
+    await setDoc(doc(db, BOOKINGS_COLLECTION, booking.id), cleanBooking);
+
+    // 2. Save or update the corresponding flight document in Firestore
+    const targetFlight: Flight = flight || {
+      id: booking.flightId,
+      flightNumber: booking.flightNumber,
+      airline: booking.airline || 'American Airlines',
+      airlineCode: 'AA',
+      aircraft: booking.aircraft || 'Boeing 787-9 Dreamliner',
+      origin: booking.origin,
+      destination: booking.destination,
+      departureTime: booking.departureTime,
+      arrivalTime: booking.arrivalTime,
+      duration: booking.duration || '8h 00m',
+      price: booking.pricePaid || 650,
+      totalSeats: 180,
+      availableSeats: Math.max(0, 180 - (booking.passengerCount || 1)),
+      terminal: booking.terminal || 'T8',
+      gate: booking.gate || 'B20',
+      status: 'On Time',
+    };
+
+    const cleanFlight = sanitizeFirestoreData({
+      ...targetFlight,
+      lastUpdated: new Date().toISOString(),
+    });
+    await setDoc(doc(db, FLIGHTS_COLLECTION, targetFlight.id), cleanFlight, { merge: true });
+  } catch (err) {
+    console.warn('Error syncing booked flight record to Firestore:', err);
+  }
+}
+
+/**
+ * Direct real-time search across Firestore database for any flight details,
+ * ticket numbers, PNRs, or passenger records.
+ */
+export async function searchFlightDatabaseInFirestore(searchQuery: string): Promise<{
+  flights: Flight[];
+  bookings: Booking[];
+}> {
+  const q = searchQuery.trim().toLowerCase();
+  const cleanQ = q.replace(/[\s-]/g, '');
+  const flightNumWithoutAA = cleanQ.replace(/^aa/, '');
+
+  try {
+    // Query both collections in parallel
+    const [flightsSnap, bookingsSnap] = await Promise.all([
+      getDocs(collection(db, FLIGHTS_COLLECTION)),
+      getDocs(collection(db, BOOKINGS_COLLECTION)),
+    ]);
+
+    const allFlights: Flight[] = flightsSnap.docs.map((d) => d.data() as Flight);
+    const allBookings: Booking[] = bookingsSnap.docs.map((d) => d.data() as Booking);
+
+    // Match flights
+    const matchedFlights = allFlights.filter((f) => {
+      const cleanFNum = (f.flightNumber || '').toLowerCase().replace(/[\s-]/g, '');
+      const fNumWithoutAA = cleanFNum.replace(/^aa/, '');
+      return (
+        f.id.toLowerCase() === q ||
+        cleanFNum.includes(cleanQ) ||
+        f.flightNumber.toLowerCase().includes(q) ||
+        (cleanQ.length >= 2 && fNumWithoutAA === flightNumWithoutAA) ||
+        (f.origin?.city && f.origin.city.toLowerCase().includes(q)) ||
+        (f.origin?.code && f.origin.code.toLowerCase().includes(q)) ||
+        (f.origin?.airport && f.origin.airport.toLowerCase().includes(q)) ||
+        (f.destination?.city && f.destination.city.toLowerCase().includes(q)) ||
+        (f.destination?.code && f.destination.code.toLowerCase().includes(q)) ||
+        (f.destination?.airport && f.destination.airport.toLowerCase().includes(q)) ||
+        (f.aircraft && f.aircraft.toLowerCase().includes(q))
+      );
+    });
+
+    // Match bookings
+    const matchedBookings = allBookings.filter((b) => {
+      const cleanTicket = (b.ticketNumber || '').toLowerCase().replace(/[\s-]/g, '');
+      const cleanConfirm = (b.confirmationCode || '').toLowerCase().replace(/[\s-]/g, '');
+      const cleanFNum = (b.flightNumber || '').toLowerCase().replace(/[\s-]/g, '');
+
+      return (
+        b.id.toLowerCase() === q ||
+        b.ticketNumber?.toLowerCase().includes(q) ||
+        cleanTicket.includes(cleanQ) ||
+        b.confirmationCode?.toLowerCase().includes(q) ||
+        cleanConfirm.includes(cleanQ) ||
+        b.flightNumber?.toLowerCase().includes(q) ||
+        cleanFNum.includes(cleanQ) ||
+        b.passenger?.fullName?.toLowerCase().includes(q) ||
+        b.passenger?.email?.toLowerCase().includes(q) ||
+        b.passengers?.some((p) => p.fullName.toLowerCase().includes(q) || p.passportNumber?.toLowerCase().includes(q)) ||
+        b.origin?.city?.toLowerCase().includes(q) ||
+        b.destination?.city?.toLowerCase().includes(q)
+      );
+    });
+
+    // If any booking matched, ensure its flight is also included in matchedFlights
+    matchedBookings.forEach((b) => {
+      if (!matchedFlights.some((f) => f.id === b.flightId || f.flightNumber.toLowerCase() === b.flightNumber.toLowerCase())) {
+        matchedFlights.push({
+          id: b.flightId,
+          flightNumber: b.flightNumber,
+          airline: b.airline || 'American Airlines',
+          airlineCode: 'AA',
+          aircraft: b.aircraft || 'Boeing 787-9 Dreamliner',
+          origin: b.origin,
+          destination: b.destination,
+          departureTime: b.departureTime,
+          arrivalTime: b.arrivalTime,
+          duration: b.duration || '8h 00m',
+          price: b.pricePaid || 650,
+          totalSeats: 180,
+          availableSeats: 140,
+          terminal: b.terminal || 'T8',
+          gate: b.gate || 'B20',
+          status: 'On Time',
+        });
+      }
+    });
+
+    return { flights: matchedFlights, bookings: matchedBookings };
+  } catch (err) {
+    console.warn('Direct Firestore database search warning:', err);
+    return { flights: [], bookings: [] };
   }
 }
 

@@ -21,6 +21,10 @@ import {
   addBookingToFirestore, 
   updateBookingInFirestore, 
   deleteBookingFromFirestore, 
+  subscribeFlights,
+  addOrUpdateFlightInFirestore,
+  syncBookedFlightToFirestore,
+  searchFlightDatabaseInFirestore,
   syncUserProfile, 
   AppUserProfile,
   SUPER_ADMIN_EMAIL,
@@ -160,6 +164,28 @@ export default function App() {
           return updated;
         }
         return prevFlights;
+      });
+    });
+
+    return () => unsub();
+  }, []);
+
+  // Subscribe to real-time flights collection from Firestore
+  useEffect(() => {
+    const unsub = subscribeFlights((firestoreFlights) => {
+      setFlights((prev) => {
+        const map = new Map<string, Flight>();
+        // Add all from Firestore
+        firestoreFlights.forEach((f) => map.set(f.id, f));
+        // Keep any active flights from state that are not yet returned
+        prev.forEach((f) => {
+          if (!map.has(f.id)) map.set(f.id, f);
+        });
+        const combined = Array.from(map.values());
+        try {
+          localStorage.setItem('american_airlines_flights', JSON.stringify(combined));
+        } catch (e) {}
+        return combined;
       });
     });
 
@@ -525,9 +551,9 @@ export default function App() {
     setTrackerFlightId(newBooking.flightId);
     setTrackerQuery(newBooking.flightNumber);
 
-    // 4. Save to Firestore asynchronously
+    // 4. Save both the booking record and the flight route to Firestore database asynchronously
     try {
-      await addBookingToFirestore(newBooking);
+      await syncBookedFlightToFirestore(newBooking, bookedFlight);
     } catch (e) {
       console.warn('Booking preserved in local state, Firestore background write error:', e);
     }
@@ -595,8 +621,12 @@ export default function App() {
         {activeTab === 'search' && (
           <FlightSearch
             flights={flights}
+            bookings={bookings}
             onSelectFlight={(flight) => handleInitiateBooking(flight)}
-            onGoToLookup={() => setActiveTab('lookup')}
+            onGoToLookup={(searchQueryText?: string) => {
+              if (searchQueryText) setLookupQuery(searchQueryText);
+              setActiveTab('lookup');
+            }}
             onOpenCalculator={() => setIsCalculatorOpen(true)}
             onTrackFlight={(flight) => handleTrackFlight(flight)}
             currentUser={currentUser}

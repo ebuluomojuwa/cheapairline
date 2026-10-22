@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Flight, AirportLocation } from '../types';
-import { Plane, MapPin, Search, ArrowRight, Sparkles, Armchair, ShieldCheck, Award, Globe, Building2, Calendar, RefreshCw, Calculator, Clock, Lock, Crown, Radio } from 'lucide-react';
+import { Flight, AirportLocation, Booking } from '../types';
+import { Plane, MapPin, Search, ArrowRight, Sparkles, Armchair, ShieldCheck, Award, Globe, Building2, Calendar, RefreshCw, Calculator, Clock, Lock, Crown, Radio, Ticket, CheckCircle2, User } from 'lucide-react';
 import { AmericanAirlinesLogo } from './AmericanAirlinesLogo';
 import { WORLD_AIRPORTS, searchWorldAirports, createFlightForDestination } from '../data/worldAirports';
 import { SmartAirportAutocomplete } from './SmartAirportAutocomplete';
@@ -8,8 +8,9 @@ import { AppUserProfile, SUPER_ADMIN_EMAIL, isSuperAdminEmail } from '../lib/fir
 
 interface FlightSearchProps {
   flights: Flight[];
+  bookings?: Booking[];
   onSelectFlight: (flight: Flight) => void;
-  onGoToLookup: () => void;
+  onGoToLookup?: (query?: string) => void;
   onOpenCalculator?: () => void;
   onTrackFlight?: (flight: Flight) => void;
   currentUser?: AppUserProfile | null;
@@ -18,6 +19,7 @@ interface FlightSearchProps {
 
 export const FlightSearch: React.FC<FlightSearchProps> = ({
   flights,
+  bookings = [],
   onSelectFlight,
   onGoToLookup,
   onOpenCalculator,
@@ -61,9 +63,52 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
     });
   }, [selectedCountry, selectedState]);
 
-  // Combined flights: static initial flights + dynamically generated flights for airports matching the destination search
+  // Combined flights: static initial flights + flights from Firestore bookings & database + dynamically generated flights
   const displayFlights = useMemo(() => {
-    let list: Flight[] = [...flights];
+    // 1. Build a unified map of all flights (prop flights + any flights from active bookings & local storage)
+    const map = new Map<string, Flight>();
+    flights.forEach((f) => map.set(f.id, f));
+
+    // Combine prop bookings with local storage bookings
+    const allBookings = [...bookings];
+    try {
+      const cached = localStorage.getItem('american_airlines_bookings');
+      if (cached) {
+        const parsed: Booking[] = JSON.parse(cached);
+        parsed.forEach((pb) => {
+          if (!allBookings.some((b) => b.id === pb.id)) allBookings.push(pb);
+        });
+      }
+    } catch (e) {}
+
+    // Ensure all booked flights are represented in flight search
+    allBookings.forEach((b) => {
+      const existing = Array.from(map.values()).find(
+        (f) => f.id === b.flightId || f.flightNumber.toLowerCase() === b.flightNumber.toLowerCase()
+      );
+      if (!existing) {
+        map.set(b.flightId, {
+          id: b.flightId,
+          flightNumber: b.flightNumber,
+          airline: b.airline || 'American Airlines',
+          airlineCode: 'AA',
+          aircraft: b.aircraft || 'Boeing 787-9 Dreamliner',
+          origin: b.origin,
+          destination: b.destination,
+          departureTime: b.departureTime,
+          arrivalTime: b.arrivalTime,
+          duration: b.duration || '8h 00m',
+          price: b.pricePaid || 650,
+          totalSeats: 180,
+          availableSeats: 140,
+          terminal: b.terminal || 'T8',
+          gate: b.gate || 'B20',
+          status: 'On Time',
+        });
+      }
+    });
+
+    let list: Flight[] = Array.from(map.values());
 
     // Filter by departure origin hub
     if (origin !== 'all') {
@@ -107,16 +152,64 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
       );
     }
 
-    // Text search matching country, state, city, airport name, or code
+    // Comprehensive text search: matching Flight Number, Ticket #, PNR, Aircraft, Origin, Destination
     if (destinationSearchText.trim() !== '') {
       const query = destinationSearchText.toLowerCase().trim();
+      const cleanQ = query.replace(/[\s-]/g, '');
+      const cleanQWithoutAA = cleanQ.replace(/^aa/, '');
+
       list = list.filter((f) => {
+        const cleanFlightNum = (f.flightNumber || '').toLowerCase().replace(/[\s-]/g, '');
+        const flightNumWithoutAA = cleanFlightNum.replace(/^aa/, '');
+
+        // Flight Number match (e.g. AA-104, 104, aa104)
+        const matchesFlightNumber =
+          cleanFlightNum.includes(cleanQ) ||
+          f.flightNumber.toLowerCase().includes(query) ||
+          (cleanQWithoutAA.length >= 2 && flightNumWithoutAA === cleanQWithoutAA) ||
+          f.id.toLowerCase() === query;
+
+        // Aircraft / Airline match
+        const matchesAircraft = (f.aircraft || '').toLowerCase().includes(query) || (f.airline || '').toLowerCase().includes(query);
+
+        // Origin match
+        const matchesOrigin =
+          f.origin.city.toLowerCase().includes(query) ||
+          f.origin.airport.toLowerCase().includes(query) ||
+          f.origin.code.toLowerCase().includes(query) ||
+          (f.origin.country && f.origin.country.toLowerCase().includes(query));
+
+        // Destination match
         const matchesCity = f.destination.city.toLowerCase().includes(query);
         const matchesAirport = f.destination.airport.toLowerCase().includes(query);
         const matchesCode = f.destination.code.toLowerCase().includes(query);
         const matchesCountry = f.destination.country?.toLowerCase().includes(query);
         const matchesState = f.destination.state?.toLowerCase().includes(query);
-        return matchesCity || matchesAirport || matchesCode || matchesCountry || matchesState;
+
+        // Booking ticket / confirmation / passenger match for this flight
+        const matchesBooking = allBookings.some((b) => {
+          const isThisFlight = b.flightId === f.id || b.flightNumber.toLowerCase() === f.flightNumber.toLowerCase();
+          if (!isThisFlight) return false;
+          const cleanTicket = (b.ticketNumber || '').toLowerCase().replace(/[\s-]/g, '');
+          const cleanConfirm = (b.confirmationCode || '').toLowerCase().replace(/[\s-]/g, '');
+          return (
+            cleanTicket.includes(cleanQ) ||
+            cleanConfirm.includes(cleanQ) ||
+            b.passenger?.fullName?.toLowerCase().includes(query)
+          );
+        });
+
+        return (
+          matchesFlightNumber ||
+          matchesAircraft ||
+          matchesOrigin ||
+          matchesCity ||
+          matchesAirport ||
+          matchesCode ||
+          matchesCountry ||
+          matchesState ||
+          matchesBooking
+        );
       });
 
       // If text query didn't return static flight items, search world airports and auto-generate flights
@@ -124,6 +217,31 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
         const matchingWorldAirports = searchWorldAirports(query);
         if (matchingWorldAirports.length > 0) {
           return matchingWorldAirports.slice(0, 6).map((ap) => createFlightForDestination(ap, originAirport || undefined));
+        }
+
+        // If query looks like a flight number (e.g. AA-104 or numbers), synthesize flight record
+        const numMatch = cleanQ.match(/(?:aa)?(\d+)/);
+        if (numMatch) {
+          const num = numMatch[1];
+          const synthFlight: Flight = {
+            id: `fl-dyn-${num}`,
+            flightNumber: `AA-${num}`,
+            airline: 'American Airlines',
+            airlineCode: 'AA',
+            aircraft: 'Boeing 787-9 Dreamliner',
+            origin: { code: 'JFK', city: 'New York', airport: 'John F. Kennedy Intl', country: 'United States', state: 'New York' },
+            destination: { code: 'LHR', city: 'London', airport: 'Heathrow Airport', country: 'United Kingdom' },
+            departureTime: new Date().toISOString(),
+            arrivalTime: new Date(Date.now() + 8 * 3600 * 1000).toISOString(),
+            duration: '7h 45m',
+            price: 650,
+            totalSeats: 180,
+            availableSeats: 140,
+            terminal: 'T8',
+            gate: 'B22',
+            status: 'On Time',
+          };
+          return [synthFlight];
         }
       }
     } else if (selectedCountry !== 'all' && list.length === 0) {
@@ -148,7 +266,7 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
     }
 
     return list;
-  }, [flights, origin, selectedCountry, selectedState, destinationCode, destinationSearchText, flightDate, maxPrice]);
+  }, [flights, bookings, origin, selectedCountry, selectedState, destinationCode, destinationSearchText, flightDate, maxPrice]);
 
   const quickCountries = [
     { country: 'Nigeria', flag: '🇳🇬', code: 'LOS', name: 'Lagos / Abuja' },
@@ -273,6 +391,41 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
             )}
           </div>
         </div>
+
+        {/* Booked Flights in Database Quick Access Bar */}
+        {bookings && bookings.length > 0 && (
+          <div className="bg-gradient-to-r from-emerald-950/90 via-slate-900 to-emerald-950/90 border border-emerald-600/70 p-3 sm:p-4 rounded-2xl text-white space-y-2.5 shadow-md">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-black text-emerald-300 flex items-center gap-1.5 uppercase tracking-wide">
+                <Ticket className="w-4 h-4 text-emerald-400" /> Booked Flight Records in Database ({bookings.length})
+              </span>
+              <span className="text-[11px] text-slate-300">Click a flight number below to instantly view its full flight details:</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {bookings.map((b) => {
+                const isSelected = destinationSearchText.toLowerCase() === b.flightNumber.toLowerCase();
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => setDestinationSearchText(isSelected ? '' : b.flightNumber)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer border ${
+                      isSelected
+                        ? 'bg-emerald-600 text-white border-emerald-400 shadow-md ring-2 ring-emerald-400/50'
+                        : 'bg-emerald-950/80 hover:bg-emerald-900 border-emerald-700/80 text-emerald-200'
+                    }`}
+                  >
+                    <span className="font-mono font-black">{b.flightNumber}</span>
+                    <span className="text-emerald-300 text-[11px]">({b.origin.code} ➔ {b.destination.code})</span>
+                    <span className="text-[10px] bg-emerald-900/90 text-emerald-300 px-1.5 py-0.5 rounded font-mono font-bold">
+                      {b.ticketNumber.slice(-9)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Smart Autocomplete Search Inputs Grid (Takeoff Origin + Landing Destination) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 bg-gradient-to-r from-red-50/70 via-slate-50 to-sky-50/70 dark:from-red-950/30 dark:via-slate-900 dark:to-sky-950/30 p-3 sm:p-4 rounded-2xl border border-red-200/80 dark:border-red-900/40">
@@ -587,6 +740,34 @@ export const FlightSearch: React.FC<FlightSearchProps> = ({
                         {flight.availableSeats} Open Seats
                       </span>
                     </div>
+
+                    {/* Active Booked Ticket Details from Database */}
+                    {bookings.some((b) => b.flightId === flight.id || b.flightNumber.toLowerCase() === flight.flightNumber.toLowerCase()) && (
+                      <div className="bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800 p-2.5 sm:p-3 rounded-xl flex items-center justify-between flex-wrap gap-2 text-xs">
+                        {(() => {
+                          const fb = bookings.find((b) => b.flightId === flight.id || b.flightNumber.toLowerCase() === flight.flightNumber.toLowerCase())!;
+                          return (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                <span className="text-emerald-900 dark:text-emerald-200 font-bold">
+                                  Confirmed Reservation: <strong className="font-mono text-emerald-800 dark:text-emerald-300 font-black">{fb.ticketNumber}</strong> ({fb.passenger.fullName} • Seat {fb.seatNumber})
+                                </span>
+                              </div>
+                              {onGoToLookup && (
+                                <button
+                                  type="button"
+                                  onClick={() => onGoToLookup(fb.ticketNumber)}
+                                  className="text-xs font-black text-emerald-700 dark:text-emerald-300 underline hover:text-emerald-900 cursor-pointer"
+                                >
+                                  View Ticket Details & Gate Pass ➔
+                                </button>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

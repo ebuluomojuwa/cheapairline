@@ -41,6 +41,31 @@
         "paymentMethod": { "type": "string" }
       },
       "required": ["ticketNumber", "passenger", "flightNumber"]
+    },
+    "flights": {
+      "title": "Flight Route & Schedule Record",
+      "description": "Persistent flight schedules, routes, and seat availability in Firestore",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "flightNumber": { "type": "string" },
+        "airline": { "type": "string" },
+        "airlineCode": { "type": "string" },
+        "aircraft": { "type": "string" },
+        "origin": { "type": "object" },
+        "destination": { "type": "object" },
+        "departureTime": { "type": "string" },
+        "arrivalTime": { "type": "string" },
+        "duration": { "type": "string" },
+        "price": { "type": "number" },
+        "totalSeats": { "type": "number" },
+        "availableSeats": { "type": "number" },
+        "terminal": { "type": "string" },
+        "gate": { "type": "string" },
+        "status": { "type": "string" },
+        "lastUpdated": { "type": "string" }
+      },
+      "required": ["id", "flightNumber", "origin", "destination"]
     }
   }
 }
